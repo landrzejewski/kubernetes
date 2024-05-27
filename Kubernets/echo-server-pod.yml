@@ -10,6 +10,9 @@ spec:
   containers:
     - name: echo-server
       image: landrzejewski/echo-server:v1
+      env:
+        - name: av
+          value: qe2
       ports:
         - containerPort: 8080
           name: http
