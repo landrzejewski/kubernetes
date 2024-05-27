@@ -23,6 +23,9 @@ services:
       users-network:
   proxy:
     image: nginx:1.26.0-alpine
+    restart: on-failure
+    depends_on:
+      - users-service
     ports:
       - "192.168.1.100:8080:80"
       - "192.168.1.100:8081:443"
@@ -31,6 +34,20 @@ services:
       - ./proxy:/etc/nginx/conf.d:ro
     networks:
       users-network:
+    #  client:
+    #    image: ubuntu:23.10
+    #    tty: true
+    #    networks:
+    #      users-network:
+  portainer:
+    image: portainer/portainer-ce:latest
+    ports:
+      - "9000:9000"
+    networks:
+      users-network:
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data/portainer:/data
 volumes:
   users-storage:
     external: false
