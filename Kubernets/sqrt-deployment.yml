@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: training
+  name: sqrt-deployment
+spec:
+  selector:
+    matchLabels:
+      app-name: sqrt
+  template:
+    metadata:
+      labels:
+        app-name: sqrt
+    spec:
+      containers:
+        - name: sqrt
+          image: registry.k8s.io/hpa-example
+          ports:
+            - containerPort: 80
+              name: http
+          resources:
+            requests:
+              cpu: 220m
+            limits:
+              cpu: 500m
