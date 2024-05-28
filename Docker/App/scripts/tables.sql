@@ -4,3 +4,4 @@ CREATE TABLE users
     name  VARCHAR(30),
     email VARCHAR(30)
 );
+\d

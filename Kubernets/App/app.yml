@@ -35,10 +35,10 @@ spec:
   volumes:
     - name: users-storage
       hostPath:
-        path: /tmp2/users-storage
+        path: /tmp/users-storage
     - name: scripts
       hostPath:
-        path: /tmp2/scripts
+        path: /tmp/scripts
 ---
 apiVersion: v1
 kind: Service
