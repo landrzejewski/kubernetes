@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: training
+  name: echo-server-deployment
+  annotations:
+    kubernetes.io/change-cause: "v2 release"
+spec:
+  replicas: 10
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 2
+      maxSurge: 3
+  selector:
+    matchLabels:
+      app-name: echo-server
+  template:
+    metadata:
+      labels:
+        app-name: echo-server
+    spec:
+      containers:
+        - name: echo-server
+          image: landrzejewski/echo-server:v2
+          ports:
+            - containerPort: 8080
+              name: http
+          resources:
+            requests:
+              memory: 64M
+            limits:
+              memory: 128M
+#          livenessProbe:
+#              httpGet:
+#                path: /
+#                port: 8080
+#              initialDelaySeconds: 30
+#              periodSeconds: 30
+#              failureThreshold: 3
+          readinessProbe:
+              httpGet:
+                path: /
+                port: 8080
+              initialDelaySeconds: 30
+              periodSeconds: 3
+              successThreshold: 3

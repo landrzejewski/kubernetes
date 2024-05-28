@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  namespace: training
+  name: storage-persistence-volume
+spec:
+  hostPath:
+    path: /tmp/storage
+  capacity:
+    storage: 10G
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: fast
+  #volumeMode: Filesystem

@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: training
+  name: echo-server-deployment
+  annotations:
+    kubernetes.io/change-cause: "initial release"
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app-name: echo-server
+  template:
+    metadata:
+      labels:
+        app-name: echo-server
+    spec:
+      containers:
+        - name: echo-server
+          image: landrzejewski/echo-server:v1
+          ports:
+            - containerPort: 8080
+              name: http
+          resources:
+            requests:
+              memory: 64M
+            limits:
+              memory: 128M
