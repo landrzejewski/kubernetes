@@ -1,4 +1,14 @@
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: training
+  name: postgres-config-map
+data:
+  POSTGRES_USER: "admin"
+  POSTGRES_PASSWORD: "admin"
+  POSTGRES_DB: "training"
+---
+apiVersion: v1
 kind: Pod
 metadata:
   namespace: training
@@ -6,19 +16,29 @@ metadata:
   labels:
     app-name: postgres
 spec:
+  nodeSelector:
+    type: primary
   containers:
     - name: postgres
       image: postgres:16-alpine
       ports:
         - containerPort: 5432
           name: db
-      env:
-        - name: POSTGRES_USER
-          value: admin
-        - name: POSTGRES_PASSWORD
-          value: admin
-        - name: POSTGRES_DB
-          value: training
+      envFrom:
+        - configMapRef:
+            name: postgres-config-map
+      volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: users-storage
+        - mountPath: /docker-entrypoint-initdb.d
+          name: scripts
+  volumes:
+    - name: users-storage
+      hostPath:
+        path: /tmp2/users-storage
+    - name: scripts
+      hostPath:
+        path: /tmp2/scripts
 ---
 apiVersion: v1
 kind: Service
@@ -31,4 +51,44 @@ spec:
   ports:
     - port: 5432
       targetPort: db
-
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: training
+  name: users-deployment
+  annotations:
+    kubernetes.io/change-cause: "initial release"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app-name: users
+  template:
+    metadata:
+      labels:
+        app-name: users
+    spec:
+      containers:
+        - name: users
+          image: landrzejewski/users-service
+          ports:
+            - containerPort: 3000
+              name: http
+          resources:
+            requests:
+              memory: 64M
+            limits:
+              memory: 128M
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: training
+  name: users-service
+spec:
+  selector:
+    app-name: users
+  ports:
+    - port: 80
+      targetPort: http

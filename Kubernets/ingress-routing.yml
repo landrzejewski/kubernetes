@@ -18,6 +18,13 @@ spec:
                 name: echo-service
                 port:
                   number: 80
+          - path: /api/users(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: users-service
+                port:
+                  number: 80
 #          - path: /echo
 #            pathType: Prefix
 #            backend:
