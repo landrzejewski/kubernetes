@@ -72,23 +72,34 @@ swapoff -a
 ```
 sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
 ```
-- Zainstaluj CRI-O
+- Zainstaluj narzędzia Kubernetes i CRI-O
 ```
-apt install 
-OS=Debian_12
-CRIO_VERSION=1.28
-echo "deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/ /"|sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
-echo "deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$CRIO_VERSION/$OS/ /"|sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:$CRIO_VERSION.list
-curl -L https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$CRIO_VERSION/$OS/Release.key | sudo apt-key add -
-curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/Release.key | sudo apt-key add -
-sudo apt update
-sudo apt install cri-o cri-o-runc
-sudo systemctl daemon-reload
-sudo systemctl restart crio
-sudo systemctl enable crio
-```
-- Ustaw wymaganą konfigurację sieci i modułów
-```
+apt-get update
+apt-get install -y software-properties-common
+
+KUBERNETES_VERSION=v1.31
+CRIO_VERSION=v1.31
+
+curl -fsSL https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/deb/Release.key |
+    gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/deb/ /" |
+    tee /etc/apt/sources.list.d/kubernetes.list
+
+curl -fsSL https://pkgs.k8s.io/addons:/cri-o:/stable:/$CRIO_VERSION/deb/Release.key |
+    gpg --dearmor -o /etc/apt/keyrings/cri-o-apt-keyring.gpg
+
+echo "deb [signed-by=/etc/apt/keyrings/cri-o-apt-keyring.gpg] https://pkgs.k8s.io/addons:/cri-o:/stable:/$CRIO_VERSION/deb/ /" |
+    tee /etc/apt/sources.list.d/cri-o.list
+    
+apt-get update
+apt-get install -y cri-o kubelet kubeadm kubectl
+
+systemctl start crio.service    
+systemctl enable crio.service    
+
+sysctl -w net.ipv4.ip_forward=1
+
 cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
 overlay
 br_netfilter
@@ -104,15 +115,6 @@ net.ipv4.ip_forward                 = 1
 EOF
 
 sudo sysctl --system
-```
-- Zainstaluj narzędzia Kubernetes
-```
-sudo apt install gnupg gnupg2 curl software-properties-common -y
-curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmour -o /etc/apt/trusted.gpg.d/cgoogle.gpg
-sudo apt-add-repository "deb http://apt.kubernetes.io/ kubernetes-xenial main"
-sudo apt update
-sudo apt install kubelet kubeadm kubectl -y
-sudo apt-mark hold kubelet kubeadm kubectl
 ```
 - Ustaw adress IP
 ```
