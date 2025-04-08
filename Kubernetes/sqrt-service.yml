@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: training
+  name: sqrt-service
+spec:
+  type: LoadBalancer
+  selector:
+    app-name: sqrt
+  ports:
+    - port: 80
+      targetPort: http
