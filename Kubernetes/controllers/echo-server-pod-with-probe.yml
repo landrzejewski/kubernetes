@@ -10,7 +10,7 @@ metadata:
 spec:
   containers:
     - name: echo-server
-      image: landrzejewski/echo-server:v1
+      image: landrzejewski/echo-server-unhealthy:latest
       env:
         - name: version
           value: v1
@@ -22,3 +22,12 @@ spec:
           memory: 64M
         limits:
           memory: 128M
+      livenessProbe:
+        httpGet:
+          path: /
+          port: 8080
+        initialDelaySeconds: 30
+        periodSeconds: 3
+        failureThreshold: 3
+
+         
