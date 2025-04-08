@@ -36,8 +36,10 @@ spec:
 
   volumes:
     - name: storage
-      hostPath:
-        path: /tmp/storage
+      persistentVolumeClaim:
+        claimName: storage-persistence-volume-claim
+#      hostPath:
+#        path: /tmp/storage
     - name: config
       configMap:
         name: updater-config-map
