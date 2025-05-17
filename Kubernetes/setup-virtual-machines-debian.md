@@ -77,8 +77,8 @@ sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
 apt-get update
 apt-get install -y software-properties-common
 
-KUBERNETES_VERSION=v1.31
-CRIO_VERSION=v1.31
+KUBERNETES_VERSION=v1.32
+CRIO_VERSION=v1.32
 
 curl -fsSL https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/deb/Release.key |
     gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
