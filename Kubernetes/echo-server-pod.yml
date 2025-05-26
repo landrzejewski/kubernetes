@@ -12,6 +12,7 @@ spec:
     image: landrzejewski/echo-server #echo-server-unhealthy
     ports:
     - containerPort: 8080
+      name: http
     env:
       - name: VERSION
         value: v1
