@@ -15,14 +15,14 @@ spec:
             pathType: ImplementationSpecific
             backend:
               service:
-                name: echo-service
+                name: echo-server-svc
                 port:
                   number: 80
           - path: /api/users(/|$)(.*)
             pathType: ImplementationSpecific
             backend:
               service:
-                name: users-service
+                name: users-server-svc
                 port:
                   number: 80
 #          - path: /echo
