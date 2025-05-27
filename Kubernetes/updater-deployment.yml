@@ -35,6 +35,8 @@ spec:
           volumeMounts:
             - mountPath: /storage
               name: storage
+            - mountPath: /config
+              name: config
 
       volumes:
         - name: storage
@@ -42,3 +44,6 @@ spec:
 #            path: /tmp/storage
           persistentVolumeClaim:
             claimName: storage-pvc
+        - name: config
+          configMap:
+            name: updater-cm
