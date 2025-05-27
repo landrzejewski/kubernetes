@@ -276,10 +276,7 @@ metrics:
 ## 4. Instalacja z użyciem `-f`
 
 ```bash
-helm install pg-release bitnami/postgresql \
-  --namespace database \
-  --create-namespace \
-  -f custom-postgresql-values.yaml
+helm install pg-release bitnami/postgresql --namespace database --create-namespace -f postgresql-default-values.yaml
 ```
 
 * `pg-release` – nazwa Twojego „release”.
