@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: updater-dep
+  namespace: training
+spec:
+  selector:
+    matchLabels:
+      app-name: updater
+  template:
+    metadata:
+      labels:
+        app-name: updater
+    spec:
+      containers:
+        - name: updater
+#          image: landrzejewski/updater:v1
+#          args:
+#            - "20"
+
+          image: landrzejewski/updater:v2
+#          env:
+#            - name: INTERVAL
+#              value: "20"
+
+#              valueFrom:
+#                configMapKeyRef:
+#                  key: INTERVAL
+#                  name: updater-cm
+
+          envFrom:
+            - configMapRef:
+                name: updater-cm
+
+          volumeMounts:
+            - mountPath: /storage
+              name: storage
+
+      volumes:
+        - name: storage
+#          hostPath:
+#            path: /tmp/storage
+          persistentVolumeClaim:
+            claimName: storage-pvc
