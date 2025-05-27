@@ -4,10 +4,6 @@ metadata:
   namespace: training
   name: storage-pv
 spec:
-  csi:
-    driver:
-    volumeHandle:
-
   hostPath:
     path: /tmp/storage
   capacity:
