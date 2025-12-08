@@ -1,0 +1,51 @@
+services:
+  postgres:
+    image: postgres:18.1-alpine
+    restart: on-failure
+    environment: 
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=training
+    volumes:
+      - ./scripts:/docker-entrypoint-initdb.d:ro
+      - ./data/postgres:/var/lib/postgresql/data
+    networks:
+      users:
+        #- ipv4_address: 192.168.10.10
+  users:
+    image: landrzejewski/users:latest
+    restart: on-failure  
+    depends_on:
+      - postgres
+    deploy:
+      replicas: 3
+    networks:
+      users:    
+  proxy:
+    image: nginx:1.28-alpine
+    restart: on-failure  
+    depends_on:
+      - users
+    ports:
+      - "8080:80"
+      - "192.168.100.57:8081:443"    
+    volumes:
+      - ./html:/usr/share/nginx/html
+      - ./proxy:/etc/nginx/conf.d:ro
+    networks:
+      users:
+  portainer:
+    image: portainer/portainer-ce:latest
+    ports:
+      - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data/portainer:/data
+    networks:
+      users:    
+networks:
+  users:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.10.0/24
