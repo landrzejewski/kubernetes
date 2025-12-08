@@ -1,0 +1,717 @@
+    1  docker
+    2  docker --version
+    3  docker info
+    4  docker run --rm hello-world
+    5  docker pull ubuntu:22.04
+    6  docker pull klasawchmurze.pl:5000/docker.io/nginx
+    7  docker image
+    8  docker images
+    9  docker search redis --limit 5
+   10  docker images
+   11  docker rmi 1b
+   12  docker images
+   13  docker inspect 9f
+   14  docker tag ubuntu:22.04 ubuntu-lts
+   15  docker images
+   16  docker run -d -p 8080:80 --name webserver nginx:alpine
+   17  docker ps
+   18  curl localhost:8080
+   19  docker rm webserver
+   20  docker top 'webserver
+   21  docker top webserver
+   22  docker stop webserver
+   23  docker ps
+   24  docker ps -a
+   25  docker start webserver
+   26  docker ps 
+   27  docker restart webserver
+   28  docker stop 65
+   29  docker rm 65
+   30  docker ps -a
+   31  docker images
+   32  docker run ubuntu:22.04
+   33  docker ps
+   34  docker run ubuntu:22.04 ls
+   35  docker ps 
+   36  docker ps -a 
+   37  docker run -it ubuntu:22.04 bash
+   38  docker ps 
+   39  docker run -d landrzejewski/echo-server:v1
+   40  docker ps
+   41  docker logs 44
+   42  docker inspect 44
+   43  docker volume ls
+   44  docker volume create app-data
+   45  docker volume ls
+   46  docker volume inspect app-data
+   47  docker run -d   --name postgres-db   -v app-data:/var/lib/postgresql/data   -e POSTGRES_PASSWORD=secret   postgres:13-alpine
+   48  docker ps
+   49  docker exec postgres-db psql -U postgres -c "CREATE DATABASE testdb;"
+   50  docker rm -f postgres-db
+   51  docker ps
+   52  docker run -d   --name postgres-db-new   -v app-data:/var/lib/postgresql/data   -e POSTGRES_PASSWORD=secret   postgres:13-alpine
+   53  docker ps
+   54  docker exec postgres-db-new psql -U postgres -c "\l" | grep testdb
+   55  docker run --rm   -v app-data:/data   -v $(pwd):/backup   alpine tar czf /backup/app-data-backup.tar.gz -C /data .
+   56  docker rm -f postgres-db-new
+   57  docker volume rm app-data
+   58  rm -f app-data-backup.tar.gz
+   59   /var/lib/docker/volumes/app-data/_data
+   60  su  -
+   61  clear
+   62  docker run -d --name app1 nginx:alpine
+   63  docker run -d --name app2 nginx:alpine
+   64  docker ps
+   65  # Get container IPs
+   66  APP1_IP=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' app1)
+   67  APP2_IP=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' app2)
+   68  echo "App1 IP: $APP1_IP"
+   69  echo "App2 IP: $APP2_IP"
+   70  docker exec app2 ping -c 2 $APP1_IP
+   71  docker exec app2 ping -c 2 app1 2>/dev/null || echo "Cannot resolve by name on default bridge"
+   72  docker network ls
+   73  docker network inspect bridge
+   74  docker rm -f app1 app2
+   75  docker network create my-network --driver bridge
+   76  docker network ls
+   77  docker run -d --name web --network my-network nginx:alpine
+   78  docker run -d --name api --network my-network alpine sleep 3600
+   79  docker exec api ping -c 2 web
+   80  docker exec web ping -c 2 api
+   81  echo '# Start from official Python image
+   82  # Using slim variant for smaller size
+   83  FROM python:3.9-slim
+   84  # Set working directory inside container
+   85  # All subsequent commands run from here
+   86  WORKDIR /app
+   87  # Copy requirements first (for better layer caching)
+   88  # If requirements don not change, this layer is reused
+   89  COPY requirements.txt .
+   90  # Install Python dependencies
+   91  # --no-cache-dir reduces image size by not storing pip cache
+   92  RUN pip install --no-cache-dir -r requirements.txt
+   93  # Copy application code
+   94  # This is separate so code changes do not invalidate pip install layer
+   95  COPY app.py .
+   96  # Document the port (informational only, does not publish)
+   97  EXPOSE 5000
+   98  # Set environment variables
+   99  # These can be overridden at runtime
+  100  ENV NAME=Docker
+  101  ENV APP_ENV=production
+  102  # Define health check
+  103  HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  104    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')" || exit 1
+  105  # Run the application
+  106  # CMD is the default command, can be overridden at runtime
+  107  CMD ["python", "app.py"]' > Dockerfile
+  108  ls
+  109  nano Dockerfile 
+  110  echo 'from flask import Flask, request
+  111  import os
+  112  import socket
+  113  app = Flask(__name__)
+  114  @app.route("/")
+  115  def hello():
+  116      html = "<h3>Hello {name}!</h3>"
+  117      html += "<b>Hostname:</b> {hostname}<br/>"
+  118      html += "<b>IP:</b> {ip}<br/>"
+  119      html += "<b>Environment:</b> {env}<br/>"
+  120      return html.format(
+  121          name=os.getenv("NAME", "World"),
+  122          hostname=socket.gethostname(),
+  123          ip=socket.gethostbyname(socket.gethostname()),
+  124          env=os.getenv("APP_ENV", "development")
+  125      )
+  126  @app.route("/health")
+  127  def health():
+  128      return "OK", 200
+  129  if __name__ == "__main__":
+  130      app.run(host="0.0.0.0", port=5000)' > app.p
+  131  ls
+  132  mv app.p app.py
+  133  docker build -t my-flask-app:v1 .
+  134  # Create a working directory
+  135  mkdir -p ~/docker-project && cd ~/docker-project
+  136  # Create a simple Python application
+  137  # File: app.py
+  138  echo 'from flask import Flask, request
+  139  import os
+  140  import socket
+  141  app = Flask(__name__)
+  142  @app.route("/")
+  143  def hello():
+  144      html = "<h3>Hello {name}!</h3>"
+  145      html += "<b>Hostname:</b> {hostname}<br/>"
+  146      html += "<b>IP:</b> {ip}<br/>"
+  147      html += "<b>Environment:</b> {env}<br/>"
+  148      return html.format(
+  149          name=os.getenv("NAME", "World"),
+  150          hostname=socket.gethostname(),
+  151          ip=socket.gethostbyname(socket.gethostname()),
+  152          env=os.getenv("APP_ENV", "development")
+  153      )
+  154  @app.route("/health")
+  155  def health():
+  156      return "OK", 200
+  157  if __name__ == "__main__":
+  158      app.run(host="0.0.0.0", port=5000)' > app.py
+  159  # Create requirements file
+  160  # File: requirements.txt
+  161  echo 'flask==2.3.0
+  162  werkzeug==2.3.0' > requirements.txt
+  163  # Create Dockerfile with detailed comments
+  164  # File: Dockerfile
+  165  echo '# Start from official Python image
+  166  # Using slim variant for smaller size
+  167  FROM python:3.9-slim
+  168  # Set working directory inside container
+  169  # All subsequent commands run from here
+  170  WORKDIR /app
+  171  # Copy requirements first (for better layer caching)
+  172  # If requirements don not change, this layer is reused
+  173  COPY requirements.txt .
+  174  # Install Python dependencies
+  175  # --no-cache-dir reduces image size by not storing pip cache
+  176  RUN pip install --no-cache-dir -r requirements.txt
+  177  # Copy application code
+  178  # This is separate so code changes do not invalidate pip install layer
+  179  COPY app.py .
+  180  # Document the port (informational only, does not publish)
+  181  EXPOSE 5000
+  182  # Set environment variables
+  183  # These can be overridden at runtime
+  184  ENV NAME=Docker
+  185  ENV APP_ENV=production
+  186  # Define health check
+  187  HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  188    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')" || exit 1
+  189  # Run the application
+  190  # CMD is the default command, can be overridden at runtime
+  191  CMD ["python", "app.py"]' > Dockerfile
+  192  # Build the image
+  193  # -t tags the image with a name:tag
+  194  docker build -t my-flask-app:v1 .
+  195  # The build process:
+  196  # 1. Sends build context to daemon
+  197  # 2. Runs each instruction, creating a layer
+  198  # 3. Tags the final image
+  199  # Run the container
+  200  docker run -d -p 5000:5000 --name flask-app my-flask-app:v1
+  201  # Test it
+  202  sleep 2
+  203  curl http://localhost:5000
+  204  echo ""
+  205  curl http://localhost:5000/health
+  206  # View logs
+  207  docker logs flask-app
+  208  # Check health status
+  209  docker inspect --format='{{.State.Health.Status}}' flask-app
+  210  # Clean up
+  211  docker rm -f flask-app
+  212  cd ~ && rm -rf ~/docker-project
+  213  docker images
+  214  # Create project directory
+  215  mkdir -p ~/multistage-demo && cd ~/multistage-demo
+  216  # Create a Go application
+  217  # File: main.go
+  218  echo 'package main
+  219  import (
+  220      "fmt"
+  221      "log"
+  222      "net/http"
+  223      "os"
+  224  )
+  225  func handler(w http.ResponseWriter, r *http.Request) {
+  226      hostname, _ := os.Hostname()
+  227      fmt.Fprintf(w, "Hello from Go multi-stage build!\nHostname: %s\nPath: %s\n", 
+  228                  hostname, r.URL.Path)
+  229  }
+  230  func healthHandler(w http.ResponseWriter, r *http.Request) {
+  231      w.WriteHeader(http.StatusOK)
+  232      fmt.Fprint(w, "healthy")
+  233  }
+  234  func main() {
+  235      http.HandleFunc("/", handler)
+  236      http.HandleFunc("/health", healthHandler)
+  237      
+  238      port := os.Getenv("PORT")
+  239      if port == "" {
+  240          port = "8080"
+  241      }
+  242      
+  243      fmt.Printf("Server starting on :%s\n", port)
+  244      log.Fatal(http.ListenAndServe(":"+port, nil))
+  245  }' > main.go
+  246  # Create multi-stage Dockerfile
+  247  # File: Dockerfile
+  248  echo '# Build stage - contains compiler and build tools
+  249  # This stage is only used for building, not in final image
+  250  FROM golang:1.19-alpine AS builder
+  251  # Install build dependencies
+  252  RUN apk add --no-cache git
+  253  WORKDIR /build
+  254  # Copy go mod files first for better caching
+  255  # COPY go.mod go.sum ./
+  256  # RUN go mod download
+  257  # Copy source code
+  258  COPY main.go .
+  259  # Build the binary
+  260  # CGO_ENABLED=0 creates static binary
+  261  # -ldflags="-s -w" strips debug info for smaller size
+  262  RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o server main.go
+  263  # Production stage - minimal image with just the binary
+  264  FROM alpine:latest
+  265  # Add ca-certificates for HTTPS connections
+  266  RUN apk --no-cache add ca-certificates
+  267  # Create non-root user for security
+  268  RUN addgroup -g 1000 appuser && \
+  269      adduser -D -u 1000 -G appuser appuser
+  270  WORKDIR /app
+  271  # Copy only the binary from build stage
+  272  # --from=builder references the previous stage
+  273  COPY --from=builder --chown=appuser:appuser /build/server .
+  274  # Switch to non-root user
+  275  USER appuser
+  276  # Expose port (informational)
+  277  EXPOSE 8080
+  278  # Health check
+  279  HEALTHCHECK --interval=30s --timeout=3s \
+  280    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+  281  # Run the binary
+  282  CMD ["./server"]' > Dockerfile
+  283  # Build the image
+  284  docker build -t go-server:multi .
+  285  # Create single-stage Dockerfile for comparison
+  286  # File: Dockerfile.single
+  287  echo 'FROM golang:1.19-alpine
+  288  WORKDIR /app
+  289  COPY main.go .
+  290  RUN go build -o server main.go
+  291  EXPOSE 8080
+  292  CMD ["./server"]' > Dockerfile.single
+  293  docker build -f Dockerfile.single -t go-server:single .
+  294  # Compare image sizes - multi-stage is much smaller!
+  295  echo "=== Image Size Comparison ==="
+  296  docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}" | grep go-server
+  297  # The size difference is dramatic:
+  298  # - Single-stage: ~300MB (includes Go compiler, tools)
+  299  # - Multi-stage: ~15MB (just binary and Alpine)
+  300  # Run the optimized version
+  301  docker run -d -p 8080:8080 --name go-app go-server:multi
+  302  sleep 2
+  303  curl http://localhost:8080
+  304  curl http://localhost:8080/health
+  305  # Verify it is running as non-root
+  306  docker exec go-app whoami
+  307  # Clean up
+  308  docker rm -f go-app
+  309  docker rmi go-server:multi go-server:single
+  310  cd ~ && rm -rf ~/multistage-demo
+  311  ls
+  312  mkdir -p ~/multistage-demo && cd ~/multistage-demo
+  313  # File: main.go
+  314  echo 'package main
+  315  import (
+  316      "fmt"
+  317      "log"
+  318      "net/http"
+  319      "os"
+  320  )
+  321  func handler(w http.ResponseWriter, r *http.Request) {
+  322      hostname, _ := os.Hostname()
+  323      fmt.Fprintf(w, "Hello from Go multi-stage build!\nHostname: %s\nPath: %s\n", 
+  324                  hostname, r.URL.Path)
+  325  }
+  326  func healthHandler(w http.ResponseWriter, r *http.Request) {
+  327      w.WriteHeader(http.StatusOK)
+  328      fmt.Fprint(w, "healthy")
+  329  }
+  330  func main() {
+  331      http.HandleFunc("/", handler)
+  332      http.HandleFunc("/health", healthHandler)
+  333      
+  334      port := os.Getenv("PORT")
+  335      if port == "" {
+  336          port = "8080"
+  337      }
+  338      
+  339      fmt.Printf("Server starting on :%s\n", port)
+  340      log.Fatal(http.ListenAndServe(":"+port, nil))
+  341  }' > main.go
+  342  # Create multi-stage Dockerfile
+  343  # File: Dockerfile
+  344  echo '# Build stage - contains compiler and build tools
+  345  # This stage is only used for building, not in final image
+  346  FROM golang:1.19-alpine AS builder
+  347  # Install build dependencies
+  348  RUN apk add --no-cache git
+  349  WORKDIR /build
+  350  # Copy go mod files first for better caching
+  351  # COPY go.mod go.sum ./
+  352  # RUN go mod download
+  353  # Copy source code
+  354  COPY main.go .
+  355  # Build the binary
+  356  # CGO_ENABLED=0 creates static binary
+  357  # -ldflags="-s -w" strips debug info for smaller size
+  358  RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o server main.go
+  359  # Production stage - minimal image with just the binary
+  360  FROM alpine:latest
+  361  # Add ca-certificates for HTTPS connections
+  362  RUN apk --no-cache add ca-certificates
+  363  # Create non-root user for security
+  364  RUN addgroup -g 1000 appuser && \
+  365      adduser -D -u 1000 -G appuser appuser
+  366  WORKDIR /app
+  367  # Copy only the binary from build stage
+  368  # --from=builder references the previous stage
+  369  COPY --from=builder --chown=appuser:appuser /build/server .
+  370  # Switch to non-root user
+  371  USER appuser
+  372  # Expose port (informational)
+  373  EXPOSE 8080
+  374  # Health check
+  375  HEALTHCHECK --interval=30s --timeout=3s \
+  376    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+  377  # Run the binary
+  378  CMD ["./server"]' > Dockerfile
+  379  # Build the image
+  380  docker build -t go-server:multi .
+  381  # Create single-stage Dockerfile for comparison
+  382  # File: Dockerfile.single
+  383  echo 'FROM golang:1.19-alpine
+  384  WORKDIR /app
+  385  COPY main.go .
+  386  RUN go build -o server main.go
+  387  EXPOSE 8080
+  388  CMD ["./server"]' > Dockerfile.single
+  389  docker build -f Dockerfile.single -t go-server:single .
+  390  # Compare image sizes - multi-stage is much smaller!
+  391  echo "=== Image Size Comparison ==="
+  392  docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}" | grep go-server
+  393  # The size difference is dramatic:
+  394  # - Single-stage: ~300MB (includes Go compiler, tools)
+  395  # - Multi-stage: ~15MB (just binary and Alpine)
+  396  # Run the optimized version
+  397  docker run -d -p 8080:8080 --name go-app go-server:multi
+  398  sleep 2
+  399  curl http://localhost:8080
+  400  curl http://localhost:8080/health
+  401  # Verify it is running as non-root
+  402  docker exec go-app whoami
+  403  # Clean up
+  404  docker rm -f go-app
+  405  docker rmi go-server:multi go-server:single
+  406  cd ~ && rm -rf ~/multistage-demo
+  407  ls
+  408  mkdir -p ~/multistage-demo && cd ~/multistage-demo
+  409  # Create a Go application
+  410  # File: main.go
+  411  echo 'package main
+  412  import (
+  413      "fmt"
+  414      "log"
+  415      "net/http"
+  416      "os"
+  417  )
+  418  func handler(w http.ResponseWriter, r *http.Request) {
+  419      hostname, _ := os.Hostname()
+  420      fmt.Fprintf(w, "Hello from Go multi-stage build!\nHostname: %s\nPath: %s\n", 
+  421                  hostname, r.URL.Path)
+  422  }
+  423  func healthHandler(w http.ResponseWriter, r *http.Request) {
+  424      w.WriteHeader(http.StatusOK)
+  425      fmt.Fprint(w, "healthy")
+  426  }
+  427  func main() {
+  428      http.HandleFunc("/", handler)
+  429      http.HandleFunc("/health", healthHandler)
+  430      
+  431      port := os.Getenv("PORT")
+  432      if port == "" {
+  433          port = "8080"
+  434      }
+  435      
+  436      fmt.Printf("Server starting on :%s\n", port)
+  437      log.Fatal(http.ListenAndServe(":"+port, nil))
+  438  }' > main.go
+  439  # Create multi-stage Dockerfile
+  440  # File: Dockerfile
+  441  echo '# Build stage - contains compiler and build tools
+  442  # This stage is only used for building, not in final image
+  443  FROM golang:1.19-alpine AS builder
+  444  # Install build dependencies
+  445  RUN apk add --no-cache git
+  446  WORKDIR /build
+  447  # Copy go mod files first for better caching
+  448  # COPY go.mod go.sum ./
+  449  # RUN go mod download
+  450  # Copy source code
+  451  COPY main.go .
+  452  # Build the binary
+  453  # CGO_ENABLED=0 creates static binary
+  454  # -ldflags="-s -w" strips debug info for smaller size
+  455  RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o server main.go
+  456  # Production stage - minimal image with just the binary
+  457  FROM alpine:latest
+  458  # Add ca-certificates for HTTPS connections
+  459  RUN apk --no-cache add ca-certificates
+  460  # Create non-root user for security
+  461  RUN addgroup -g 1000 appuser && \
+  462      adduser -D -u 1000 -G appuser appuser
+  463  WORKDIR /app
+  464  # Copy only the binary from build stage
+  465  # --from=builder references the previous stage
+  466  COPY --from=builder --chown=appuser:appuser /build/server .
+  467  # Switch to non-root user
+  468  USER appuser
+  469  # Expose port (informational)
+  470  EXPOSE 8080
+  471  # Health check
+  472  HEALTHCHECK --interval=30s --timeout=3s \
+  473    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+  474  # Run the binary
+  475  CMD ["./server"]' > Dockerfile
+  476  # Build the image
+  477  docker build -t go-server:multi .
+  478  # Create single-stage Dockerfile for comparison
+  479  # File: Dockerfile.single
+  480  echo 'FROM golang:1.19-alpine
+  481  WORKDIR /app
+  482  COPY main.go .
+  483  RUN go build -o server main.go
+  484  EXPOSE 8080
+  485  CMD ["./server"]' > Dockerfile.single
+  486  docker build -f Dockerfile.single -t go-server:single .
+  487  # Compare image sizes - multi-stage is much smaller!
+  488  echo "=== Image Size Comparison ==="
+  489  docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}" | grep go-server
+  490  # The size difference is dramatic:
+  491  # - Single-stage: ~300MB (includes Go compiler, tools)
+  492  # - Multi-stage: ~15MB (just binary and Alpine)
+  493  # Run the optimized version
+  494  docker run -d -p 8080:8080 --name go-app go-server:multi
+  495  sleep 2
+  496  curl http://localhost:8080
+  497  curl http://localhost:8080/health
+  498  # Verify it is running as non-root
+  499  docker exec go-app whoami
+  500  ls
+  501  nano Dockerfile
+  502  mkdir -p ~/compose-app && cd ~/compose-app
+  503  # Create a Python web application
+  504  # File: app.py
+  505  echo 'from flask import Flask, render_template_string
+  506  import redis
+  507  import os
+  508  import socket
+  509  app = Flask(__name__)
+  510  # Connect to Redis
+  511  cache = redis.Redis(
+  512      host=os.getenv("REDIS_HOST", "redis"),
+  513      port=6379,
+  514      decode_responses=True
+  515  )
+  516  @app.route("/")
+  517  def hello():
+  518      try:
+  519          visits = cache.incr("counter")
+  520      except redis.RedisError:
+  521          visits = "Cannot connect to Redis"
+  522      
+  523      html = """
+  524      <html>
+  525      <head>
+  526          <title>Docker Compose Demo</title>
+  527          <style>
+  528              body { font-family: Arial; margin: 40px; }
+  529              .info { background: #f0f0f0; padding: 20px; border-radius: 5px; }
+  530          </style>
+  531      </head>
+  532      <body>
+  533          <h1>Hello from Docker Compose!</h1>
+  534          <div class="info">
+  535              <p><strong>Visit Count:</strong> {visits}</p>
+  536              <p><strong>Hostname:</strong> {hostname}</p>
+  537              <p><strong>Environment:</strong> {env}</p>
+  538          </div>
+  539      </body>
+  540      </html>
+  541      """
+  542      
+  543      return html.format(
+  544          visits=visits,
+  545          hostname=socket.gethostname(),
+  546          env=os.getenv("ENVIRONMENT", "development")
+  547      )
+  548  @app.route("/health")
+  549  def health():
+  550      try:
+  551          cache.ping()
+  552          return "healthy", 200
+  553      except:
+  554          return "unhealthy", 503
+  555  if __name__ == "__main__":
+  556      app.run(host="0.0.0.0", port=5000, debug=True)' > app.py
+  557  # Create requirements
+  558  # File: requirements.txt
+  559  echo 'flask==2.3.0
+  560  redis==4.5.0
+  561  werkzeug==2.3.0' > requirements.txt
+  562  # Create Dockerfile
+  563  # File: Dockerfile
+  564  echo 'FROM python:3.9-slim
+  565  WORKDIR /app
+  566  COPY requirements.txt .
+  567  RUN pip install --no-cache-dir -r requirements.txt
+  568  COPY app.py .
+  569  EXPOSE 5000
+  570  CMD ["python", "app.py"]' > Dockerfile
+  571  # Create docker-compose.yml
+  572  # File: docker-compose.yml
+  573  echo '
+  574  # Services define the containers to run
+  575  services:
+  576    # Web application service
+  577    web:
+  578      # Build from Dockerfile in current directory
+  579      build: .
+  580      # Restart policy
+  581      restart: unless-stopped
+  582      # Port mapping - host:container
+  583      ports:
+  584        - "5000:5000"
+  585      # Environment variables
+  586      environment:
+  587        - ENVIRONMENT=production
+  588        - REDIS_HOST=redis
+  589      # Dependencies - wait for redis to start first
+  590      depends_on:
+  591        - redis
+  592      # Mount current directory for development
+  593      volumes:
+  594        - .:/app
+  595      # Connect to custom network
+  596      networks:
+  597        - app-network
+  598      # Health check
+  599      healthcheck:
+  600        test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+  601        interval: 30s
+  602        timeout: 10s
+  603        retries: 3
+  604    # Redis database service
+  605    redis:
+  606      # Use official Redis image
+  607      image: redis:7-alpine
+  608      # Restart policy
+  609      restart: unless-stopped
+  610      # Run Redis with persistence
+  611      command: redis-server --appendonly yes
+  612      # Named volume for data persistence
+  613      volumes:
+  614        - redis-data:/data
+  615      # Connect to custom network
+  616      networks:
+  617        - app-network
+  618      # Health check
+  619      healthcheck:
+  620        test: ["CMD", "redis-cli", "ping"]
+  621        interval: 10s
+  622        timeout: 5s
+  623        retries: 5
+  624  # Named volumes
+  625  volumes:
+  626    redis-data:
+  627      driver: local
+  628  # Custom network for service communication
+  629  networks:
+  630    app-network:
+  631      driver: bridge' > docker-compose.yml
+  632  # Start the application
+  633  # -d runs in background
+  634  docker compose up -d
+  635  ls
+  636  nano docker-compose.yml 
+  637  docker swarm init
+  638  docker ps
+  639  curl localhost:8080/api/users
+  640  curl 192.168.100.57:8080/api/users
+  641  curl localhost:8080/api/users
+  642  docker login
+  643  docker images
+  644  docker tag users:latest landrzejewski/users
+  645  docker images
+  646  docker push landrzejewski/users:latest
+  647  docker compose up
+  648  docker compose down
+  649  docker ps
+  650  docker stop $(docker ps -q)
+  651  docker rm $(docker ps -q -a)
+  652  docker rmi $(docker images -q)
+  653  docker images
+  654  docker rmi $(docker images -q)--force
+  655  docker ps -a
+  656  docker rmi 3f
+  657  docker rmi 3f -f
+  658  docker rmi 9 -f
+  659  docker compose up
+  660  docker compose down
+  661  docker compose up
+  662  cd users
+  663  docker build -t users .
+  664  docker images
+  665  ip a | grep 192
+  666  docker compose up
+  667  docker compose down
+  668  docker compose up
+  669  git remote add origin https://github.com/landrzejewski/kubernetes.git
+  670  kubectl get nodes
+  671  env
+  672  cd ~
+  673  cd .kube/
+  674  ls
+  675  cat config 
+  676  cat /etc/hosts
+  677  kubectl describe nodes node1
+  678  kubectl get pods
+  679  kubectl get namespaces 
+  680  kubectl get pods -n kube-system 
+  681  curl localhost:8080
+  682  kubectl get namespaces 
+  683  kubectl create namespace training
+  684  kubectl get namespaces 
+  685  kubectl delete namespaces training 
+  686  kubectl get namespaces 
+  687  kubectl create -f echo-server.yml 
+  688  kubectl get pods
+  689  kubectl describe pods echo-server 
+  690  kubectl get pods -o wide
+  691  kubectl delete pods echo-server 
+  692  kubectl get pods -o wide
+  693  kubectl create -f echo-server.yml 
+  694  kubectl logs echo-server 
+  695  kubectl exec echo-server -- ls
+  696  kubectl exec -it echo-server -- sh
+  697  kubectl port-forward echo-server 8080:8080
+  698  kubectl create -f echo-server.yml 
+  699  kubectl apply -f echo-server.yml 
+  700  kubectl get pods
+  701  kubectl get pods --show-labels 
+  702  kubectl apply -f echo-server.yml 
+  703  kubectl get pods --show-labels 
+  704  kubectl label pods echo-server env=prod
+  705  kubectl get pods --show-labels 
+  706  kubectl label pods echo-server env-
+  707  kubectl get pods --show-labels 
+  708  kubectl create namespace training
+  709  kubectl delete namespaces training 
+  710  kubectl apply -f training-namespace.yml 
+  711  kubectl get namespaces 
+  712  kubectl get pods
+  713  kubectl get pods -n training 
+  714  kubectl config set-context --current --namespace=training
+  715  kubectl get pods
+  716  kubectl delete -n default pods echo-server 
+  717  history >> kubernetes-history-console-2025-12-08.txt
