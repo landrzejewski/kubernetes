@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: echo-server-ds
+  namespace: training
+spec:
+  selector:
+    matchLabels:
+      app-name: "status-monitor"
+  #    matchExpressions:
+  #      - key: app-name
+  #        values:
+  #          - status-monitor
+  #          - status
+  #        operator: In
+  template:
+    metadata:
+      namespace: training
+      labels:
+        app-name: "status-monitor"
+    spec:
+      containers:
+        - name: status-monitor
+          image: landrzejewski/status-monitor
+          resources:
+            requests:
+              memory: "2M"
+              cpu: "250m"
