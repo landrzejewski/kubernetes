@@ -12,13 +12,20 @@ metadata:
     changelog-url: "https://git.example.com/myrepo/commit/a1b2c3d4"
     maintainer: "ops-team@example.com"
 spec:
+  # --- Init Container ---
+  initContainers:
+    - name: init-message
+      image: busybox:latest
+      command: ["sh", "-c", "echo 'initializing'; sleep 2"]
+
   containers:
+
+    # --- Main Echo Server ---
     - name: echo-server
-      image: landrzejewski/echo-server:v1  #landrzejewski/echo-server-unhealthy:v1
+      image: landrzejewski/echo-server:v1
       ports:
         - containerPort: 8080
           name: http
-      # restartPolicy: Always    # default
       resources:
         requests:
           memory: "64M"
@@ -35,8 +42,30 @@ spec:
         periodSeconds: 3
         failureThreshold: 3
       readinessProbe:
-          httpGet:
-            path: /
-            port: 8080
-          initialDelaySeconds: 2
-          successThreshold: 1
+        httpGet:
+          path: /
+          port: 8080
+        initialDelaySeconds: 2
+        successThreshold: 1
+
+    # --- Sidecar Log Collector ---
+    - name: log-writer
+      image: busybox:latest
+      command:
+        - sh
+        - -c
+        - |
+          echo "Sidecar started: collecting logs..."
+          mkdir -p /var/log/echo
+          while true; do
+            date >> /var/log/echo/echo.log
+            sleep 10
+          done
+      volumeMounts:
+        - name: echo-logs
+          mountPath: /var/log/echo
+
+  # --- Shared Volume for Logs ---
+  volumes:
+    - name: echo-logs
+      emptyDir: {}
