@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: updater-dep
+  namespace: training
+  annotations:
+    kubernetes.io/change-cause: "initial release"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app-name: "updater"
+  template:
+    metadata:
+      namespace: training
+      labels:
+        app-name: "updater"
+    spec:
+      containers:
+        - name: nginx
+          image: klasawchmurze.pl:5000/docker.io/nginx:1.21-alpine
+          ports:
+            - containerPort: 80
+        - name: updater
+          image: klasawchmurze.pl:5000/docker.io/landrzejewski/updater:v1

@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: updater-cm
+  namespace: training
+data:
+  version: "v1"
+  INTERVAL: "20"
+  user.properties: |
+    name=jan
+    age=20
