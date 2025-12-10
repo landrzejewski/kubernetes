@@ -53,6 +53,8 @@ spec:
           volumeMounts:
               - name: storage
                 mountPath: /var/htdocs
+              - name: config
+                mountPath: /config
 
       volumes:
         - name: storage
@@ -61,5 +63,12 @@ spec:
           #emptyDir:
           #  medium: Memory
 
-          hostPath:
-            path: /tmp/updater
+          #hostPath:
+          #  path: /tmp/updater
+
+          persistentVolumeClaim:
+            claimName: storage-pvc
+
+        - name: config
+          configMap:
+            name: updater-cm
