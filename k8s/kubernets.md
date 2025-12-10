@@ -1,4 +1,4 @@
-## Podstawy administracji
+ ## Podstawy administracji
 Wyświetlenie informacji dotyczących elementu konfiguracyjnego
 ```
 kubectl explain pod.spec
@@ -114,6 +114,27 @@ kubectl delete pods --all
 ```
 kubectl delete all --all
 ```
+## Deployment
+```
+kubectl apply -f echo-server-deployment.yml --record
+```
+```
+kubectl rollout history deployment echo-server-deployment
+```
+```
+kubectl rollout status deployment echo-server-deployment
+```
+```
+while true;do curl -s http://192.168.1.241;sleep 1;done;
+```
+```
+kubectl set image deployment echo-server-deployment echo-server-app=landrzejewski/echo-server:v2
+```
+```
+kubectl rollout undo deployment echo-server-deployment --to-revision=1
+```
+Polisy sieciowe [https://github.com/ahmetb/kubernetes-network-policy-recipes](https://github.com/ahmetb/kubernetes-network-policy-recipes)
+
 Uruchomienie testowego poda w klastrze
 ```
 kubectl run -it --rm test --image=busybox /bin/sh
@@ -154,65 +175,7 @@ kubectl apply -f admin-roles.yml
 kubectl -n kubernetes-dashboard create token admin-user
 
 kubectl -n kubernetes-dashboard port-forward svc/kubernetes-dashboard-kong-proxy 8001:443 --address 0.0.0.0
-
 ```
-Instalacja glusterfs: hosty gfs1, gfs2, gfs3
-- ustawić nazwy hostów i adresy ip
-- zaktualizować /etc/hosts na wszystkich maszynach
-- zainstalować glusterfs
-```
-sudo apt-get update
-```
-```
-sudo apt-get install glusterfs-server
-```
-```
-sudo systemctl start glusterd
-sudo systemctl enable glusterd
-sudo service glusterd status
-```
-```
-sudo mkdir -p /data/gv0
-```
-```
-sudo gluster peer probe gfs2
-sudo gluster peer probe gfs3
-```
-```
-sudo gluster volume create gv0 replica 3 gfs1:/data/gv0 gfs2:/data/gv0 gfs3:/data/gv0 force
-```
-```
-sudo gluster volume start gv0
-```
-```
-sudo gluster volume info
-```
-- na maszynach w klastrze zainstalować klienta glusterfs
-```
-sudo apt-get update
-sudo apt-get install glusterfs-client
-```
-## Deployment
-```
-kubectl apply -f echo-server-deployment.yml --record
-```
-```
-kubectl rollout history deployment echo-server-deployment
-```
-```
-kubectl rollout status deployment echo-server-deployment
-```
-```
-while true;do curl -s http://192.168.1.241;sleep 1;done;
-```
-```
-kubectl set image deployment echo-server-deployment echo-server-app=landrzejewski/echo-server:v2
-```
-```
-kubectl rollout undo deployment echo-server-deployment --to-revision=1
-```
-Polisy sieciowe [https://github.com/ahmetb/kubernetes-network-policy-recipes](https://github.com/ahmetb/kubernetes-network-policy-recipes)
-
 Instalacja Helm [https://helm.sh/docs/intro/install](https://helm.sh/docs/intro/install)
 ```
 curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
@@ -221,48 +184,3 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.
 sudo apt-get update
 sudo apt-get install helm
 ```
-Kubespray https://www.vagrantup.com/docs/other/wsl
-```
-wsl --install -d ubuntu
-```
-```
-sudo apt-get update
-```
-```
-sudo apt-get install python3 python3-pip
-```
-```
-git clone https://github.com/kubernetes-sigs/kubespray
-```
-Ustawić ansible.compatibility_mode = "2.0" w Vagrantfile
-```
-# Install virt-manager
-sudo apt install -y virt-manager
- 
-# Add youself to kvm and libvirt group
-sudo usermod --append --groups kvm,libvirt "${USER}"
- 
-# Fix-up permission to avoid "Could not access KVM kernel module: Permission denied" error
-sudo chown root:kvm /dev/kvm
-sudo chmod 660 /dev/kvm
- 
-# Start required services
-sudo libvirtd &
-sudo virtlogd &
- 
-# Launch virt-manager
-virt-manager &
-
-sudo chmod 777 -R /var/run/libvirt
-
-
-cd kubespray
-sudo pip install -r requirements.txt
-export PATH="$PATH:/mnt/c/Program Files/Oracle/VirtualBox"   // windows
-export VAGRANT_WSL_ENABLE_WINDOWS_ACCESS="1"                 // windows
-export VAGRANT_HOME=/home/lukas/vagrant
-sudo apt-get install vagrant
-vagrant plugin install virtualbox_WSL2                       // windows
-vagrant up
-```
-
