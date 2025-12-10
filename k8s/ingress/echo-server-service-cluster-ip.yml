@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: echo-server-svc
+  namespace: training
+spec:
+  selector:
+    app-name: "echo-server"
+  # type: ClusterIP
+  # clusterIP: 10.111.201.106
+  # internalTrafficPolicy: Cluster
+  ports:
+    - port: 80
+      targetPort: http #8080

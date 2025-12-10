@@ -1,0 +1,35 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: training
+  name: routing-ing
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/limit-connections: "1"
+    nginx.ingress.kubernetes.io/limit-rpm: "10"
+    nginx.ingress.kubernetes.io/limit-rps: "2"
+    nginx.ingress.kubernetes.io/limit-whitelist: "127.0.0.1"
+#  * `limit-connections: "1"` – maksymalnie jedno aktywne połączenie dla klienta.
+#  * `limit-rps: "2"` – maksymalnie 2 żądania na sekundę.
+#  * `limit-rpm: "10"` – maksymalnie 10 żądań na minutę.
+#  * `limit-whitelist: "127.0.0.1"` – z tego CIDR limity nie będą nakładane.
+spec:
+  ingressClassName: "nginx"
+  rules:
+    - http:
+        paths:
+          - path: /api/echo-service(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: echo-server-svc
+                port:
+                  number: 80
+#          - path: /echo
+#            pathType: Prefix
+#            backend:
+#              service:
+#                name: echo-server-svc
+#                port:
+#                  name: http

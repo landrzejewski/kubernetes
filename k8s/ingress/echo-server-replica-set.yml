@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: echo-server-rs
+  namespace: training
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app-name: "echo-server"
+#    matchExpressions:
+#      - key: app-name
+#        values:
+#          - echo-server
+#          - echo
+#        operator: In
+  template:
+    metadata:
+      namespace: training
+      labels:
+        app-name: "echo-server"
+    spec:
+      containers:
+        - name: echo-server
+          image: klasawchmurze.pl:5000/docker.io/landrzejewski/echo-server
+          ports:
+            - containerPort: 8080
+              name: http
+          resources:
+            requests:
+              memory: "64M"
+              cpu: "250m"
+            limits:
+              memory: "128M"
+              cpu: "500m"

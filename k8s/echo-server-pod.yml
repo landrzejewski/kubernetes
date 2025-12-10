@@ -19,7 +19,6 @@ spec:
       command: ["sh", "-c", "echo 'initializing'; sleep 2"]
 
   containers:
-
     # --- Main Echo Server ---
     - name: echo-server
       image: landrzejewski/echo-server:v1
