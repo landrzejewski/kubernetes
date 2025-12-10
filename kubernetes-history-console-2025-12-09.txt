@@ -1,0 +1,136 @@
+  718  su -
+  719  cd .kube/
+  720  ls
+  721  cat config 
+  722  kubectl create training
+  723  kubectl create namespace training
+  724  kubectl get pods
+  725  kubectl get pods -n kube-system 
+  726  kubectl explain pod.spec
+  727  kubectl explain pod
+  728  # Create a basic Pod with just an image
+  729  kubectl run nginx-test --image=nginx:1.25
+  730  kubectlget pods
+  731  kubectl get pods
+  732  kubectl run resource-controlled   --image=alpine:3.18   --dry-run=client -o yaml   --command -- sh -c "while true; do echo Working...; sleep 10; done" > resource-pod.yaml
+  733  kubectl run -it --rm test-pod --image=busybox:1.36 -- /bin/sh
+  734  cd k8s/
+  735  kubectl apply -f echo-server-pod.yml 
+  736  kubectl get pods -o wide
+  737  kubectl get pods -w
+  738  kubectl get pods
+  739  kubectl get nodes
+  740  kubectl delete po echo-server --force
+  741  cd node-selction/
+  742  kubectl apply -f echo-server-pod-with-node-selector.yml 
+  743  kubectl get pods
+  744  kubectl get nodes --show-labels 
+  745  kubectl label nodes node2 type=local
+  746  kubectl get pods
+  747  kubectl get pods -o wide
+  748  cd ..
+  749  kubectl apply -f echo-server-pod.yml 
+  750  kubectl delete pods echo-server --froce
+  751  kubectl delete pods echo-server --force
+  752  kubectl apply -f echo-server-pod.yml 
+  753  kubectl get pods
+  754  kubectl logs echo-server -c lo
+  755  kubectl exec -it echo-server -c log-writer -- sh
+  756  kubectl delete pods echo-server --force
+  757  kubectl apply -f echo-server-pod.yml 
+  758  kubectl exec -it echo-server -c log-writer -- sh
+  759  kubectl get pods
+  760  kubectl exec -it echo-server -c log-writer -- sh
+  761  kubectl delete pods echo-server --force
+  762  kubectl apply -f echo-server-pod.yml 
+  763  kubectl get pods
+  764  kubectl describe pod echo-server 
+  765  kubectl delete pods echo-server --force
+  766  kubectl apply -f echo-server-pod.yml 
+  767  kubectl get pods
+  768  kubectl exec -it echo-server -c log-writer -- sh
+  769  kubectl delete all --all
+  770  cd controller/
+  771  kubectl apply f echo-server-replication-controller.yml 
+  772  kubectl apply -f echo-server-replication-controller.yml 
+  773  kubectl get pods
+  774  kubectl get pods -o wide
+  775  kubectl get rc
+  776  kubectl describe rc echo-server-rc 
+  777  kubectl get pods -o wide
+  778  kubectl delete pod echo-server-rc-wxxx7 --force
+  779  kubectl get pods -o wide
+  780  kubectl apply -f echo-server-replication-controller.yml 
+  781  kubectl get pods -o wide
+  782  kubectl scale rc echo-server-rc --replicas 15
+  783  kubectl get pods -o wide
+  784  kubectl delete rc echo-server-rc 
+  785  kubectl get pods -o wide
+  786  kubectl apply -f echo-server-replica-set.yml 
+  787  kubectl get pods -o wide
+  788  kubectl get rs echo-server-rc 
+  789  kubectl delete rs echo-server-rc 
+  790  kubectl apply -f status-monitor-daemon-set.yml 
+  791  kubectl get pods -o wide
+  792  kubectl delete pod echo-server-ds-zgqkr --force
+  793  kubectl get pods -o wide
+  794  kubectl get nodes
+  795  kubectl get nodes -w
+  796  kubectl get pods -o wide
+  797  kubectl apply -f long-task-job.yml 
+  798  kubectl get pods -o wide
+  799  kubectl get pods -w
+  800  kubectl get pods 
+  801  kubectl delete all --all
+  802  cd .. 
+  803  cd deployment/
+  804  kubectl apply -f echo-server-deployment-v1.yml 
+  805  kubectl get pod
+  806  kubectl get rs
+  807  kubectl get deployments
+  808  kubectl scale deployment echo-server-dep --replicas 10
+  809  kubectl rollout history deployment echo-server-dep 
+  810  kubectl apply -f echo-server-deployment-v2.yml 
+  811  kubectl get deployments
+  812  kubectl get rs
+  813  kubectl get pods
+  814  kubectl rollout history 
+  815  kubectl rollout history deployment echo-server-dep 
+  816  kubectl rollout undo deployment echo-server-dep --to-revision 1
+  817  kubectl get pods
+  818  kubectl delete all -all
+  819  kubectl delete all --all
+  820  cd ..
+  821  cd sevices/
+  822  kubectl apply -f echo-server-service-cluster-ip.yml 
+  823  kubectl get svc
+  824  kubectl describe svc echo-server-svc 
+  825  cd ..
+  826  cd controller/
+  827  kubectl apply -f echo-server-replica-set.yml 
+  828  cd sevices/
+  829  kubectl get pods
+  830  kubectl get svc
+  831  kubectl describe svc echo-server-svc 
+  832  kubectl run -it --rm test --image=busybox sh
+  833  kubectl delete svc echo-server-svc 
+  834  kubectl apply -f echo-server-service-node-port.yml 
+  835  kubectl get svc
+  836  curl localhost:30001
+  837  curl localhost:30002
+  838  curl localhost:30000
+  839  kubectl delete svc echo-server-svc 
+  840  kubectl apply -f echo-server-service-load-balancer.yml 
+  841  kubectl get svc
+  842  kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.14.5/config/manifests/metallb-native.yaml
+  843  kubectl apply -f
+  844  kubectl apply -f metallb-config.yml 
+  845  kubectl get svc
+  846  curl localhost:8080
+  847  kubectl get nodes
+  848  kubectl apply -f external-name.yml 
+  849  kubectl get svc
+  850  kubectl get endpoints
+  851  kubectl scale rs echo-server-rs --replicas 10
+  852  kubectl describe svc echo-server-svc 
+  853  history >> kubernetes-history-console-2025-12-09.txt
