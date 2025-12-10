@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: test-rs
+  namespace: training
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app-name: "test"
+  template:
+    metadata:
+      namespace: training
+      labels:
+        app-name: "test"
+    spec:
+      containers:
+        - name: test
+          image: busybox
+          command: [ "sleep", "3600" ]
+          volumeMounts:
+            - name: storage
+              mountPath: /storage
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: minio-pvc
