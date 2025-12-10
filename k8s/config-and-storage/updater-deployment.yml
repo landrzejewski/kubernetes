@@ -21,5 +21,45 @@ spec:
           image: klasawchmurze.pl:5000/docker.io/nginx:1.21-alpine
           ports:
             - containerPort: 80
+          volumeMounts:
+              - name: storage
+                mountPath: /usr/share/nginx/html
+
         - name: updater
-          image: klasawchmurze.pl:5000/docker.io/landrzejewski/updater:v1
+          #command:
+          #  - /update.sh
+
+          #image: klasawchmurze.pl:5000/docker.io/landrzejewski/updater:v1
+          #args:
+          #  - "20"
+          image: klasawchmurze.pl:5000/docker.io/landrzejewski/updater:v2
+          #env:
+          #  - name: INTERVAL
+          #    value: "20"
+
+          #env:
+          #  - name: INTERVAL
+          #    valueFrom:
+          #      configMapKeyRef:
+          #        name: updater-cm
+          #        key: INTERVAL
+
+          envFrom:
+            - configMapRef:
+                name: updater-cm
+            - secretRef:
+                name: db-credentials
+
+          volumeMounts:
+              - name: storage
+                mountPath: /var/htdocs
+
+      volumes:
+        - name: storage
+          #emptyDir: {}
+
+          #emptyDir:
+          #  medium: Memory
+
+          hostPath:
+            path: /tmp/updater
