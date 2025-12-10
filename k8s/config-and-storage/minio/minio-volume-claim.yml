@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: minio-pvc
+  namespace: training
+spec:
+  resources:
+    requests:
+      storage: 5G
+  accessModes:
+    - ReadWriteMany
+  storageClassName: minio-sc
