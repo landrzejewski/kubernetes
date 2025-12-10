@@ -141,7 +141,7 @@ kubectl run -it --rm test --image=busybox /bin/sh
 ```
 Instalacja metallb [https://metallb.universe.tf/installation](https://metallb.universe.tf/installation)
 ```
-kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.14.5/config/manifests/metallb-native.yaml
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.15.3/config/manifests/metallb-native.yaml
 ```
 ```
 apiVersion: metallb.io/v1beta1
@@ -161,7 +161,7 @@ metadata:
 ```
 Instalacja Ingress [https://kubernetes.github.io/ingress-nginx/deploy/#bare-metal-clusters](https://kubernetes.github.io/ingress-nginx/deploy/#bare-metal-clusters)
 ```
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.1/deploy/static/provider/baremetal/deploy.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.14.1/deploy/static/provider/baremetal/deploy.yaml
 kubectl get pods -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx --watch
 ```
 Instalacja Gateway
