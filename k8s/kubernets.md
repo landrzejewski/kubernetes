@@ -174,7 +174,18 @@ kubectl get gc
 Instalacja UI  [https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard](https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard)
 ```
 helm repo add kubernetes-dashboard https://kubernetes.github.io/dashboard/
-helm upgrade --install kubernetes-dashboard kubernetes-dashboard/kubernetes-dashboard --create-namespace --namespace kubernetes-dashboard
+
+helm upgrade --install kubernetes-dashboard kubernetes-dashboard/kubernetes-dashboard --create-namespace --namespace kubernetes-dashboard'
+
+helm upgrade --install kubernetes-dashboard kubernetes-dashboard/kubernetes-dashboard \
+  --create-namespace \
+  --namespace kubernetes-dashboard \
+  --set auth.image.repository=klasawchmurze.pl:5000/docker.io/kubernetesui/dashboard-auth \
+  --set api.image.repository=klasawchmurze.pl:5000/docker.io/kubernetesui/dashboard-api \
+  --set web.image.repository=klasawchmurze.pl:5000/docker.io/kubernetesui/dashboard-web \
+  --set metricsScraper.image.repository=klasawchmurze.pl:5000/docker.io/kubernetesui/dashboard-metrics-scraper \
+  --set kong.image.repository=klasawchmurze.pl:5000/docker.io/kong
+
 
 kubectl apply -f admin-user.yml
 kubectl apply -f admin-roles.yml
