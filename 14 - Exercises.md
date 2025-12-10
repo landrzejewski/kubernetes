@@ -10,7 +10,7 @@ Create three pods with different labels:
 - backend pod with labels: app=api, tier=backend, env=prod
 - database pod with labels: app=db, tier=data, env=dev Use kubectl selectors to query pods by different label combinations.
 
-### Task 3: ConfigMap Creation and Usage
+### + Task 3: ConfigMap Creation and Usage
 
 Create a configuration file with application properties, create a ConfigMap from it, and mount it in a pod at /etc/config. Verify the configuration is accessible inside the container.
 
@@ -30,7 +30,7 @@ Create a deployment with 3 replicas running nginx:1.19. Update it to nginx:1.20,
 
 Create a deployment and expose it using different service types (ClusterIP, NodePort). Test connectivity to each service type and document the differences.
 
-### Task 8: Persistent Storage with PVC
+### + Task 8: Persistent Storage with PVC
 
 Create a PersistentVolume using hostPath storage, create a matching PersistentVolumeClaim, and use it in a pod. Write data to the volume and verify it persists after pod restart.
 
@@ -38,7 +38,7 @@ Create a PersistentVolume using hostPath storage, create a matching PersistentVo
 
 Create a Job that runs a batch task (counting from 1 to 100) and a CronJob that executes every 2 minutes to log the current date and time.
 
-### Task 10: Resource Limits and Requests
+### + Task 10: Resource Limits and Requests
 
 Create pods with different CPU and memory requests and limits. Create one pod that exceeds available cluster resources and observe the scheduling behavior.
 
@@ -58,7 +58,7 @@ Create a namespace with ResourceQuota limiting CPU, memory, and pod count. Creat
 
 Create a ServiceAccount, Role with pod read-only permissions, and RoleBinding. Create a pod using this ServiceAccount and test the permissions using kubectl commands.
 
-### + Task 15: StatefulSet Deployment
+### Task 15: StatefulSet Deployment
 
 Deploy a StatefulSet with 3 replicas, each with its own PersistentVolumeClaim. Verify ordered deployment, stable network identities, and persistent storage.
 
@@ -102,11 +102,11 @@ Apply taints to nodes and create pods with appropriate tolerations. Test scenari
 
 Create a simple CRD for "WebApp" resources with fields for replicas, image, and port. Create instances of your custom resource and verify they're stored.
 
-### Task 23: ConfigMap and Secret Updates
+### + Task 23: ConfigMap and Secret Updates
 
 Create pods that use ConfigMaps and Secrets as volumes and environment variables. Update the ConfigMap/Secret and verify how changes propagate to running pods.
 
-### Task 24: Multi-Container Communication
+### + Task 24: Multi-Container Communication
 
 Create a pod with containers that communicate via localhost (shared network namespace) and shared volumes. Implement a simple producer-consumer pattern.
 
@@ -118,7 +118,7 @@ Create a deployment and practice different rollout strategies. Implement control
 
 Create multiple services and demonstrate how pods can discover and communicate with services using DNS names, environment variables, and direct service calls.
 
-### Task 27: Troubleshooting Pod Issues
+### + Task 27: Troubleshooting Pod Issues
 
 Intentionally create problematic pods (wrong image tags, missing secrets, resource conflicts) and practice debugging using kubectl describe, logs, and events.
 
