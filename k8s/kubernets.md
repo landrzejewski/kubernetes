@@ -166,7 +166,7 @@ kubectl get pods -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx --watc
 ```
 Instalacja Gateway
 ```
-kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml
+kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.1/standard-install.yaml
 helm install ngf oci://ghcr.io/nginx/charts/nginx-gateway-fabric --create-namespace -n nginx-gateway
 kubectl get pods,svc -n nginx-gateway
 kubectl get gc
