@@ -164,6 +164,13 @@ Instalacja Ingress [https://kubernetes.github.io/ingress-nginx/deploy/#bare-meta
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.1/deploy/static/provider/baremetal/deploy.yaml
 kubectl get pods -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx --watch
 ```
+Instalacja Gateway
+```
+kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml
+helm install ngf oci://ghcr.io/nginx/charts/nginx-gateway-fabric --create-namespace -n nginx-gateway
+kubectl get pods,svc -n nginx-gateway
+kubectl get gc
+```
 Instalacja UI  [https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard](https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard)
 ```
 helm repo add kubernetes-dashboard https://kubernetes.github.io/dashboard/
