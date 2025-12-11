@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sqrt-dep
+  namespace: training
+  annotations:
+    kubernetes.io/change-cause: "initial release"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app-name: sqrt
+  template:
+    metadata:
+      namespace: training
+      labels:
+        app-name: sqrt
+    spec:
+      containers:
+        - name: sqrt
+          image: registry.k8s.io/hpa-example
+          ports:
+            - containerPort: 80
+              name: http
+          resources:
+            requests:
+              cpu: 220m
+            limits:
+              cpu: 500m
