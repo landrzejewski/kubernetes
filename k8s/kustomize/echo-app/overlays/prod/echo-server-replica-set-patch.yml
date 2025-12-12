@@ -3,4 +3,4 @@ kind: ReplicaSet
 metadata:
   name: echo-server-rs
 spec:
-  replicas: 1
+  replicas: 5
