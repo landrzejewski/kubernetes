@@ -1,0 +1,74 @@
+
+Kubernetes security operates within the broader framework of cloud native security, following a lifecycle approach that spans development, distribution, deployment, and runtime phases. The architecture emphasizes defense in depth, where security controls are layered throughout the system rather than relying on a single protective boundary. This approach recognizes that in modern distributed systems, traditional perimeter-based security models are insufficient, and instead advocates for a zero-trust architecture that minimizes attack surfaces even for internal threats.
+
+During the development phase, security begins with ensuring the integrity of development environments and incorporating security considerations into application design. This involves establishing code review processes that specifically address security concerns, building threat models that identify trust boundaries, and understanding the risks inherent in the system architecture. Advanced security automation techniques, including fuzzing and security chaos engineering, should be integrated where appropriate to discover vulnerabilities before they reach production.
+
+The distribution phase focuses heavily on supply chain security, encompassing both container images and the cluster components themselves. Organizations must implement comprehensive vulnerability scanning for container images and other artifacts, ensuring that all software distribution uses encryption in transit with a verifiable chain of trust back to the software source. A robust process for updating dependencies is essential, particularly for responding to security announcements. Digital certificates and other validation mechanisms provide supply chain assurance, while subscription to security feeds ensures timely awareness of emerging threats.
+
+Deployment security centers on enforcing restrictions about what can be deployed, who can deploy it, and where deployments are permitted. This phase establishes the foundation for the runtime environment through proper cluster configuration. The deployment phase must verify the cryptographic identity of container image artifacts and ensure that the underlying IT infrastructure provides the security guarantees that higher layers expect.
+
+### Runtime Security Framework
+
+Runtime security in Kubernetes encompasses three critical areas: access control, compute security, and storage protection. Access control begins with protecting the Kubernetes API, which serves as the primary control plane for the entire cluster. Effective authentication and authorization mechanisms must be implemented, utilizing ServiceAccounts to provide and manage security identities for workloads and cluster components. Transport Layer Security protects API traffic, requiring careful management of encryption keys and certificates.
+
+Compute security relies on the dual nature of containers, which provide both isolation between applications and aggregation of isolated applications on the same host. This creates inherent trade-offs that must be carefully balanced. Organizations should enforce Pod Security Standards to ensure applications run with only necessary privileges, potentially deploying specialized container-optimized operating systems that present reduced attack surfaces. Resource management through ResourceQuotas and LimitRanges ensures fair allocation of shared resources while preventing resource exhaustion attacks.
+
+Storage security requires implementing encryption at rest for volumes through external storage plugins, enabling encryption for API objects, and ensuring data durability through verified backup procedures. Authentication between cluster nodes and network storage is crucial, as is implementing application-level encryption where appropriate. Hardware security modules provide the strongest protection for encryption keys by allowing cryptographic operations without exposing the keys themselves.
+
+Network security measures complement these controls through NetworkPolicies or service mesh implementations. Some network plugins provide encryption for cluster network traffic using technologies like VPN overlays. The choice of network plugin and its integration method significantly impacts the security of data in transit.
+
+### Pod Security Standards
+
+Kubernetes defines three Pod Security Standard profiles that provide a graduated approach to security enforcement. The Privileged profile is intentionally unrestricted, providing the widest possible permissions for system and infrastructure workloads managed by trusted users. This profile allows Pods to bypass typical container isolation mechanisms, including access to the host network when necessary.
+
+The Baseline profile aims for ease of adoption while preventing known privilege escalations, targeting application operators and developers of non-critical applications. It restricts various dangerous capabilities including HostProcess containers on Windows, sharing of host namespaces, privileged containers, and additional capabilities beyond a defined safe set. It forbids HostPath volumes, restricts or disallows host ports, and enforces limitations on AppArmor profiles, SELinux contexts, proc mount types, seccomp profiles, and sysctls. Each restriction is designed to prevent specific attack vectors while maintaining reasonable compatibility with common workload requirements.
+
+The Restricted profile enforces current Pod hardening best practices at the expense of some compatibility, targeting security-critical applications and lower-trust users. Beyond incorporating all Baseline restrictions, it further limits volume types to a specific allowlist, prevents privilege escalation through setuid or setgid bits, requires containers to run as non-root users, explicitly requires secure seccomp profiles, and mandates that containers drop all capabilities while permitting only NET_BIND_SERVICE when necessary. These restrictions significantly reduce the attack surface available to compromised containers.
+
+### Pod Security Admission
+
+Pod Security Admission provides built-in enforcement of Pod Security Standards at the namespace level when Pods are created. The system operates through three modes: enforce, which rejects policy violations; audit, which logs violations without blocking; and warn, which displays warnings to users without preventing Pod creation. Each namespace can configure any combination of these modes and can even set different security levels for different modes, providing flexibility in policy application.
+
+The admission system applies to both Pods and workload resources that create Pods. While audit and warning modes apply to workload resources to catch violations early, enforce mode only applies to the resulting Pod objects, not the workload resources themselves. This design allows developers to receive feedback about security issues without blocking deployment of controllers.
+
+Exemptions provide necessary flexibility for legitimate exceptions to security policies. These can be configured statically in the Admission Controller configuration and must be explicitly enumerated. Exemption dimensions include usernames for authenticated or impersonated users, RuntimeClassNames for Pods specifying exempt runtime classes, and entire namespaces. Certain Pod field updates are also exempt from policy checks, including most metadata updates and specific spec fields like activeDeadlineSeconds and tolerations.
+
+### Service Accounts
+
+Service accounts provide distinct identities for non-human entities within Kubernetes clusters, enabling Pods, system components, and external entities to authenticate and authorize their actions. Unlike user accounts, which represent human users and typically exist outside the Kubernetes API, service accounts are lightweight, namespaced Kubernetes objects that can be quickly created and configured for specific tasks.
+
+Every namespace automatically receives a default service account upon creation, though this account initially has minimal permissions beyond basic API discovery. When Pods are created without explicitly specifying a service account, Kubernetes automatically assigns the namespace's default service account. However, following the principle of least privilege, production workloads should use dedicated service accounts with precisely scoped permissions rather than relying on default accounts.
+
+Service accounts authenticate using signed JSON Web Tokens, which can be time-limited and audience-scoped when issued through the TokenRequest API. The authentication process involves verifying the token signature, checking expiration, validating object references in token claims, and confirming audience claims match expected values. For bound tokens created through TokenRequest or token volume projection, the API server additionally verifies that the specific object using the service account still exists.
+
+Modern token management emphasizes short-lived, automatically rotating tokens over the legacy approach of long-lived static tokens mounted as Secrets. The TokenRequest API and token volume projection provide secure mechanisms for obtaining and refreshing tokens, while the deprecated practice of creating permanent token Secrets poses significant security risks due to their static nature and lack of automatic rotation.
+
+### Access Control Architecture
+
+The Kubernetes API access control pipeline consists of multiple sequential stages that each request must pass through. Transport security establishes TLS connections using certificates that may be signed by private certificate authorities or public key infrastructure. The authentication step examines the entire HTTP request, typically focusing on headers and client certificates, using one or more authentication modules until one succeeds or the request is rejected with a 401 status code.
+
+Authorization follows authentication, evaluating whether the authenticated user has permission to perform the requested action on the specified object. Kubernetes supports multiple authorization modules including ABAC, RBAC, and Webhook modes, checking each in sequence until one authorizes the request or all deny it, resulting in a 403 status code. The authorization decision considers the username, requested action, and affected object, comparing these against existing policies.
+
+Admission control provides a final layer of request processing that can modify or reject requests based on their content. Unlike authentication and authorization, admission controllers can access and modify the object being created or updated. Multiple admission controllers are called in order, and if any rejects the request, it is immediately denied. After passing all admission controllers, requests undergo validation before being written to the object store.
+
+### RBAC Best Practices
+
+Role-Based Access Control in Kubernetes requires careful design to prevent privilege escalation while providing necessary access. The principle of least privilege should guide all permission assignments, granting only explicitly required permissions for each user or service account's operational needs. Permissions should be assigned at the namespace level using RoleBindings rather than ClusterRoleBindings whenever possible, avoiding wildcard permissions that grant access to current and future object types.
+
+Administrators should avoid using cluster-admin accounts for routine operations, instead using lower-privileged accounts with impersonation rights when elevated access is occasionally needed. The system:masters group should be used sparingly, as membership bypasses all RBAC checks and provides unrestricted superuser access that cannot be revoked through normal RBAC mechanisms.
+
+Distribution of privileged tokens requires careful management. Powerful service accounts should be limited to specific nodes, avoiding co-location with untrusted or publicly-exposed workloads. Taints and tolerations, node affinity, and pod anti-affinity rules can enforce separation between privileged and unprivileged workloads, especially when less-trusted Pods don't meet the Restricted Pod Security Standard.
+
+Privilege escalation risks in RBAC include several specific permissions that require careful control. List and watch access to Secrets effectively reveals their contents, as list responses include Secret data. Permission to create workloads implicitly grants access to mount any Secrets, ConfigMaps, and PersistentVolumes in the namespace, as well as the API access levels of any service account. Creating PersistentVolumes, especially hostPath volumes, provides filesystem access that can lead to privilege escalation. The escalate and bind verbs allow users to bypass built-in protections against privilege escalation, while the impersonate verb enables assuming other users' identities.
+
+### Secrets Management
+
+Kubernetes Secrets require comprehensive security measures throughout their lifecycle. Encryption at rest should be configured in etcd to protect stored Secret data, moving beyond the default base64 encoding which provides no actual security. Access control for Secrets should follow least-privilege principles, restricting watch and list access to only the most privileged system components and limiting human access to cluster administrators.
+
+The principle of least privilege extends to Secret access patterns within Pods. When multiple containers exist in a Pod, volume mounts and environment variables should be configured so only containers requiring Secret access can retrieve it. Applications must protect Secret values after reading them, avoiding logging sensitive data or transmitting it to untrusted parties.
+
+External secret management provides an additional layer of security by keeping confidential data outside the cluster. Solutions like the Kubernetes Secrets Store CSI Driver enable the kubelet to retrieve Secrets from external stores and mount them into authorized Pods, centralizing secret management and potentially providing additional security features like automatic rotation and audit logging.
+
+Secret manifests encoded in base64 should never be stored in source control or shared broadly, as base64 encoding provides no confidentiality. Organizations should establish secure workflows for Secret creation and distribution that avoid exposing sensitive data in plain text or easily decoded formats.
+
+Cluster administrators should implement comprehensive etcd management policies, including secure deletion of durable storage and encrypted communication between etcd instances. Network isolation and access controls for etcd provide defense in depth, ensuring that even if other security measures fail, direct access to stored Secrets remains protected.

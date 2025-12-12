@@ -1,0 +1,23 @@
+dn: ou=Users,dc=example,dc=com
+objectClass: organizationalUnit
+ou: Users
+
+dn: ou=Groups,dc=example,dc=com
+objectClass: organizationalUnit
+ou: Groups
+
+dn: uid=jdoe,ou=Users,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: John Doe
+sn: Doe
+uid: jdoe
+userPassword: {SSHA}Wght31Gt93G9WGPIRQae1H6MJ6N9oEu0
+
+dn: cn=vault-password-users,ou=Groups,dc=example,dc=com
+objectClass: groupOfNames
+objectClass: top
+cn: vault-password-users
+member: uid=jdoe,ou=Users,dc=example,dc=com
