@@ -1,0 +1,9 @@
+resources:
+  - echo-server-replica-set.yml
+  - echo-server-service-node-port.yml
+
+labels:
+  - pairs:
+      env: "dev"
+
+namespace: training

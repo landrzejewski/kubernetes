@@ -1,0 +1,19 @@
+resources:
+  - ../../base
+
+patches:
+  - target:
+      kind: ReplicaSet
+      name: echo-server-rs
+    path: echo-server-replica-set-patch.yml
+
+labels:
+  - pairs:
+      version: "v1"
+      env: "prod"
+
+secretGenerator:
+  - name: database-creds
+    literals:
+      - username=admin
+      - password=1f2d1e2e67df

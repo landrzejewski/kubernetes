@@ -1,0 +1,6 @@
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: echo-server-rs
+spec:
+  replicas: 1
