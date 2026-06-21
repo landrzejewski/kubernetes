@@ -882,7 +882,7 @@ spec:
         tier: frontend
     spec:
       affinity:
-        # Prefer same node as cache
+        # Must be on same node as cache (hard requirement)
         podAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
           - labelSelector:

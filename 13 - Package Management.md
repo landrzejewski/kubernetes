@@ -1493,29 +1493,42 @@ components:
 
 #### Variable Substitution
 
+The legacy `vars` field is **deprecated** in Kustomize — it works only in a limited
+set of fields and is unreliable inside `configMapGenerator` literals. Use the
+[`replacements`](https://kubectl.docs.kubernetes.io/references/kustomize/kustomization/replacements/)
+field instead: it copies a value from a `source` object's field into one or more
+`targets` selected by kind/name and field path.
+
 ```yaml
 # overlays/production/kustomization.yaml
 configMapGenerator:
 - name: webapp-config
   behavior: merge
   literals:
-  - database.url=postgres://$(DB_HOST):5432/$(DB_NAME)
+  - database.host=placeholder   # overwritten by the replacement below
+  - database.name=placeholder
 
-vars:
-- name: DB_HOST
-  objref:
+replacements:
+- source:
     kind: ConfigMap
     name: database-config
-    apiVersion: v1
-  fieldref:
-    fieldpath: data.host
-- name: DB_NAME
-  objref:
+    fieldPath: data.host
+  targets:
+  - select:
+      kind: ConfigMap
+      name: webapp-config
+    fieldPaths:
+    - data.[database.host]
+- source:
     kind: ConfigMap
     name: database-config
-    apiVersion: v1
-  fieldref:
-    fieldpath: data.name
+    fieldPath: data.name
+  targets:
+  - select:
+      kind: ConfigMap
+      name: webapp-config
+    fieldPaths:
+    - data.[database.name]
 ```
 
 ## Comparing Helm and Kustomize

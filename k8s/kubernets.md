@@ -106,7 +106,7 @@ kubectl delete pod echo-server-pod
 kubectl delete pod -l version=v1
 ```
 ```
-kubectl delete namesapces training
+kubectl delete namespaces training
 ```
 ```
 kubectl delete pods --all
@@ -116,7 +116,7 @@ kubectl delete all --all
 ```
 ## Deployment
 ```
-kubectl apply -f echo-server-deployment.yml --record
+kubectl apply -f echo-server-deployment.yml
 ```
 ```
 kubectl rollout history deployment echo-server-deployment
@@ -175,9 +175,11 @@ Instalacja UI  [https://kubernetes.io/docs/tasks/access-application-cluster/web-
 ```
 helm repo add kubernetes-dashboard https://kubernetes.github.io/dashboard/
 
-helm upgrade --install kubernetes-dashboard kubernetes-dashboard/kubernetes-dashboard --create-namespace --namespace kubernetes-dashboard'
+helm upgrade --install kubernetes-dashboard kubernetes-dashboard/kubernetes-dashboard --create-namespace --namespace kubernetes-dashboard
+```
 
 ### Alternatywnie (repo cache)
+```
 helm upgrade --install kubernetes-dashboard kubernetes-dashboard/kubernetes-dashboard \
   --create-namespace \
   --namespace kubernetes-dashboard \

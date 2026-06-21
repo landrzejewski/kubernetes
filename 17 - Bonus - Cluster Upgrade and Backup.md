@@ -115,7 +115,7 @@ sudo systemctl restart kubelet
 For each worker node:
 
 ```bash
-kubectl drain <node> --ignore-daemonsets --delete-local-data
+kubectl drain <node> --ignore-daemonsets --delete-emptydir-data
 # On node:
 sudo apt-get update
 sudo apt-get install -y --allow-downgrades kubelet=<K8S_VERSION>-00 kubectl=<K8S_VERSION>-00
