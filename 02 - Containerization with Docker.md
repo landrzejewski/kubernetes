@@ -1078,6 +1078,97 @@ docker rmi go-server:multi go-server:single
 cd ~ && rm -rf ~/multistage-demo
 ```
 
+### Image Optimization Best Practices
+
+Multi-stage builds are the single biggest optimization, but several other techniques work together to keep images small, fast to build, and quick to pull. Smaller images mean faster deployments, lower registry storage costs, a smaller attack surface, and quicker scaling. The following demo turns a deliberately wasteful Dockerfile into an optimized one and measures the difference:
+
+```bash
+# Create project directory
+mkdir -p ~/optimize-demo && cd ~/optimize-demo
+
+# Create a small Python application
+# File: app.py
+echo 'print("Optimized image demo")' > app.py
+
+# File: requirements.txt
+echo 'requests==2.31.0' > requirements.txt
+
+# Unoptimized Dockerfile - common mistakes
+# File: Dockerfile.unoptimized
+echo 'FROM python:3.9
+
+# Mistake 1: copy everything first, so ANY code change
+# invalidates the cache for the expensive install below
+COPY . .
+
+# Mistake 2: each RUN is its own layer, and the apt cache
+# is left behind, bloating the image
+RUN apt-get update
+RUN apt-get install -y curl
+RUN pip install -r requirements.txt
+
+CMD ["python", "app.py"]' > Dockerfile.unoptimized
+
+# Optimized Dockerfile - best practices applied
+# File: Dockerfile.optimized
+echo '# 1. Use a minimal base image (-slim instead of the full image)
+FROM python:3.9-slim
+
+WORKDIR /app
+
+# 2. Order instructions least- to most-frequently-changing.
+#    Dependencies change rarely, so copy + install them first
+#    so this layer stays cached when only app code changes.
+COPY requirements.txt .
+
+# 3. Combine commands into a single RUN and clean the package
+#    cache IN THE SAME LAYER (a later "rm" cannot shrink an
+#    earlier layer). --no-cache-dir avoids storing the pip cache.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/* && \
+    pip install --no-cache-dir -r requirements.txt
+
+# 4. Copy the frequently-changing application code last
+COPY app.py .
+
+CMD ["python", "app.py"]' > Dockerfile.optimized
+
+# Build both versions
+docker build -f Dockerfile.unoptimized -t demo:unoptimized .
+docker build -f Dockerfile.optimized -t demo:optimized .
+
+# Compare the sizes - the optimized image is dramatically smaller
+echo "=== Image Size Comparison ==="
+docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}" | grep demo
+
+# Inspect the layers to see where space is used
+# Each line is a layer; --human shows readable sizes
+echo -e "\n=== Layer breakdown (optimized) ==="
+docker history --human demo:optimized
+
+# A change to app.py rebuilds ONLY the last layer in the
+# optimized image, because the dependency layer is cached.
+echo 'print("Optimized image demo - v2")' > app.py
+echo -e "\n=== Rebuild after a code change (note the cached layers) ==="
+docker build -f Dockerfile.optimized -t demo:optimized .
+
+# Clean up
+docker rmi demo:unoptimized demo:optimized
+cd ~ && rm -rf ~/optimize-demo
+```
+
+The optimization checklist, in order of impact:
+
+- **Use multi-stage builds** to leave compilers and build tools out of the final image (see the previous section).
+- **Pick a minimal base image**: prefer `-slim` or `alpine` variants over full images, and `scratch` or distroless for statically linked binaries (as in the Go example above).
+- **Order instructions from least- to most-frequently-changing** so expensive dependency layers stay cached. Copying `requirements.txt`/`package.json` and installing *before* copying the rest of the code is the key pattern.
+- **Combine related commands in a single `RUN`** with `&&`, and remove package-manager caches in the *same* layer (`apt-get ... && rm -rf /var/lib/apt/lists/*`, `apk add --no-cache`). Cleaning in a later layer does not shrink the earlier one.
+- **Avoid storing build caches**: `pip install --no-cache-dir`, `npm ci --omit=dev`, and strip binaries with linker flags like `-ldflags="-s -w"`.
+- **Exclude unneeded files** with a `.dockerignore` (covered in the Security section) so the build context — and `COPY . .` — stays small.
+
+Inspect and audit your images with `docker image ls`, `docker history --human <image>`, and the external `dive` tool, which visualizes each layer's contents and flags wasted space.
+
 ### Build Arguments and Environment Variables
 
 Build arguments and environment variables serve different purposes. Build args are only available during build, while env vars are available at runtime:
@@ -1712,6 +1803,117 @@ docker rmi ignore-demo
 cd ~ && rm -rf ~/dockerignore-demo
 ```
 
+### Protecting Secrets During Image Builds
+
+Sooner or later a build needs a secret—an API token to download a private package, SSH keys to clone a private repository, or registry credentials. The dangerous trap is that **anything baked into an image during the build stays there**. Every `ARG`, `ENV`, and `COPY`'d file becomes part of an immutable, read-only layer. Deleting the secret in a later `RUN` does **not** remove it: the value still lives in the earlier layer and is trivially recovered by anyone who pulls the image. This demo first shows the leak, then two correct ways to hide information at build time:
+
+```bash
+# Create project directory
+mkdir -p ~/build-secrets-demo && cd ~/build-secrets-demo
+
+# A fake secret we want to use during the build but NOT ship
+echo "API_TOKEN=super-secret-token-12345" > token.txt
+
+# === The WRONG way 1: passing a secret via ARG ===
+# File: Dockerfile.arg
+echo 'FROM alpine:latest
+
+# ARG looks temporary, but its value is recorded in the
+# image build history for anyone to read.
+ARG API_TOKEN
+
+# Pretend we use the token to fetch something
+RUN echo "Using token: ${API_TOKEN}" > /tmp/build.log
+
+CMD ["echo", "done"]' > Dockerfile.arg
+
+docker build -f Dockerfile.arg --build-arg API_TOKEN=super-secret-token-12345 -t leak:arg .
+
+# The secret is exposed in the build history - NOT hidden at all!
+echo "=== Secret leaked via ARG (visible in history) ==="
+docker history --no-trunc leak:arg | grep -i token
+
+# === The WRONG way 2: COPY the secret then delete it ===
+# File: Dockerfile.copy
+echo 'FROM alpine:latest
+
+# Copy the secret into the image...
+COPY token.txt /tmp/token.txt
+
+# ...use it, then delete it in a later layer
+RUN cat /tmp/token.txt > /tmp/build.log && rm /tmp/token.txt
+
+CMD ["echo", "done"]' > Dockerfile.copy
+
+docker build -f Dockerfile.copy -t leak:copy .
+
+# The file is gone from the final filesystem...
+docker run --rm leak:copy ls /tmp/token.txt 2>&1 || echo "Not in final layer..."
+
+# ...but it still sits in an earlier layer. Export the image
+# and the original token.txt is recoverable from the tarball.
+echo "=== Secret still present in an earlier layer ==="
+docker save leak:copy -o leak.tar
+tar -xf leak.tar -C extracted 2>/dev/null || (mkdir extracted && tar -xf leak.tar -C extracted)
+find extracted -name "*.tar" -exec tar -xOf {} 2>/dev/null \; | grep -a "super-secret-token" && \
+  echo "Recovered the secret from image layers (BAD!)" || echo "(layer scan)"
+
+# === The RIGHT way 1: multi-stage build ===
+# Use the secret only in a builder stage and copy ONLY the
+# resulting artifact into the final image. The secret never
+# reaches the shipped layers.
+# File: Dockerfile.multistage
+echo 'FROM alpine:latest AS builder
+COPY token.txt /tmp/token.txt
+# Use the secret to produce an artifact (e.g. download a file)
+RUN echo "fetched-with-token" > /tmp/artifact.txt && rm /tmp/token.txt
+
+# Final stage starts clean and copies only the artifact
+FROM alpine:latest
+COPY --from=builder /tmp/artifact.txt /app/artifact.txt
+CMD ["cat", "/app/artifact.txt"]' > Dockerfile.multistage
+
+docker build -f Dockerfile.multistage -t safe:multistage .
+echo "=== Multi-stage: only the artifact ships, no token ==="
+docker history --no-trunc safe:multistage | grep -i token || echo "No token in history (GOOD!)"
+
+# === The RIGHT way 2: BuildKit secret mounts ===
+# The secret is mounted only for one RUN and is never written
+# to any layer or the build history. This is the recommended
+# approach for modern Docker.
+# File: Dockerfile.secret
+echo '# syntax=docker/dockerfile:1
+FROM alpine:latest
+
+# The secret is available at /run/secrets/token ONLY during
+# this RUN; it leaves no trace in the image.
+RUN --mount=type=secret,id=token \
+    cat /run/secrets/token > /tmp/build.log && \
+    echo "Build used the secret without persisting it"
+
+CMD ["echo", "done"]' > Dockerfile.secret
+
+# DOCKER_BUILDKIT=1 enables BuildKit (default on modern Docker)
+DOCKER_BUILDKIT=1 docker build -f Dockerfile.secret \
+  --secret id=token,src=./token.txt -t safe:secret .
+
+echo "=== BuildKit secret: nothing leaks into history ==="
+docker history --no-trunc safe:secret | grep -i token || echo "No token in history (GOOD!)"
+
+# Clean up
+docker rmi leak:arg leak:copy safe:multistage safe:secret
+rm -rf ~/build-secrets-demo
+cd ~
+```
+
+The rules of thumb for keeping information out of images:
+
+- **Never pass secrets through `ARG` or `ENV`.** Build args are recorded in the image history (`docker history`), and env vars persist in the running container's environment.
+- **Never `COPY` a secret in, even if you delete it later**—the original remains in an earlier layer and is recoverable from the image.
+- **Use BuildKit secret mounts (`RUN --mount=type=secret,...`)** when a secret is only needed *during* the build, or a **multi-stage build** when you only need to ship the *result* of using the secret.
+- **Inject runtime secrets at runtime, not build time**: use `-e`/`--env-file`, mounted files, or Docker/Swarm secrets (see the Swarm secret example later in this module). In Kubernetes, this is handled by **Secrets**, covered later in the course.
+- Combine this with a **`.dockerignore`** (previous section) so credential files never enter the build context in the first place.
+
 ## Docker Swarm: Native Orchestration
 
 ### Understanding Docker Swarm
@@ -1814,6 +2016,53 @@ docker swarm leave --force
 ```
 
 ## Troubleshooting Guide
+
+### Debugging Basics
+
+When a container misbehaves, resist the urge to guess and instead follow a systematic workflow. Each step narrows down the problem before you reach for the specific fixes in the catalog below:
+
+```bash
+# Start a container to investigate (this one will keep running)
+docker run -d --name debug-target nginx:alpine
+
+# 1. READ THE LOGS first - most failures explain themselves here.
+#    This is stdout/stderr from the container's main process.
+docker logs debug-target
+docker logs --tail 50 -f debug-target   # follow new output (Ctrl+C to stop)
+
+# 2. INSPECT the container's configuration and state as JSON:
+#    exit code, restart count, mounts, env vars, networks.
+docker inspect debug-target
+docker inspect --format='{{.State.Status}} (exit {{.State.ExitCode}})' debug-target
+
+# 3. GET A SHELL inside a running container to look around.
+docker exec -it debug-target /bin/sh
+# Inside: check processes, config files, connectivity, then `exit`
+
+# 4. CHECK PROCESSES AND RESOURCE USAGE without entering the container.
+docker top debug-target              # processes running inside
+docker stats --no-stream debug-target # CPU/memory/network snapshot
+
+# 5. WATCH DAEMON EVENTS in real time (starts, stops, OOM kills, deaths).
+#    Run this in a second terminal while reproducing the issue.
+# docker events --filter container=debug-target   # Ctrl+C to stop
+
+docker rm -f debug-target
+
+# 6. EPHEMERAL DEBUG CONTAINER - spin up a throwaway shell from any
+#    image to test commands, networking, or DNS in isolation.
+docker run --rm -it alpine /bin/sh   # --rm auto-deletes on exit
+
+# 7. CONTAINER THAT EXITS IMMEDIATELY - you cannot exec into a stopped
+#    container, so override the command to keep it alive, then explore.
+docker run -d --name crash-loop alpine sh -c "echo starting; exit 1"
+docker logs crash-loop               # see why it exited
+docker run -d --name kept-alive alpine sleep 3600  # keep it running
+docker exec -it kept-alive /bin/sh   # now investigate interactively
+docker rm -f crash-loop kept-alive
+```
+
+With the failure localized, use the targeted solutions below.
 
 ### Common Issues and Solutions
 
