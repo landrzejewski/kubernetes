@@ -2,18 +2,18 @@
 
 ### The Evolution from Physical Servers to Containers
 
-The journey to containers began with physical servers, where each application required its own dedicated hardware. This approach was wasteful—servers often ran at 10-20% capacity, yet organizations needed multiple machines for isolation and security. Virtual machines emerged as the first solution, allowing multiple "virtual servers" to run on single physical machines through hypervisors like VMware or VirtualBox.
+The journey to containers began with physical servers, where each application required its own dedicated hardware. This approach was wasteful-servers often ran at 10-20% capacity, yet organizations needed multiple machines for isolation and security. Virtual machines emerged as the first solution, allowing multiple "virtual servers" to run on single physical machines through hypervisors like VMware or VirtualBox.
 
-While VMs solved the hardware waste problem, they introduced new challenges. Each VM needs its own complete operating system, consuming gigabytes of RAM and storage. Starting a VM takes minutes as it boots an entire OS. Running ten applications meant running ten full operating systems—a significant overhead that containers elegantly solve.
+While VMs solved the hardware waste problem, they introduced new challenges. Each VM needs its own complete operating system, consuming gigabytes of RAM and storage. Starting a VM takes minutes as it boots an entire OS. Running ten applications meant running ten full operating systems-a significant overhead that containers elegantly solve.
 
 ### How Containers Differ from Virtual Machines
 
 Containers represent a fundamental architectural shift. Instead of virtualizing hardware like VMs do, containers virtualize at the operating system level. All containers on a host share the same OS kernel but run in isolated processes. 
 
-To understand this better, imagine an apartment building versus individual houses. Virtual machines are like separate houses—each has its own foundation, plumbing, electrical system, and all the infrastructure needed to function independently. This independence provides strong isolation but requires duplicating everything for each house. Containers are like apartments in a single building—they share the core infrastructure (foundation, main water lines, electrical grid) but maintain complete privacy and isolation through walls and separate entrances. This shared infrastructure model explains why:
+To understand this better, imagine an apartment building versus individual houses. Virtual machines are like separate houses-each has its own foundation, plumbing, electrical system, and all the infrastructure needed to function independently. This independence provides strong isolation but requires duplicating everything for each house. Containers are like apartments in a single building-they share the core infrastructure (foundation, main water lines, electrical grid) but maintain complete privacy and isolation through walls and separate entrances. This shared infrastructure model explains why:
 
 - **Size**: Containers measure in megabytes (typically 5-200MB) versus gigabytes for VMs (typically 1-20GB). The container only contains your application and its specific dependencies, not an entire OS.
-- **Startup**: Containers launch in milliseconds versus minutes for VMs. There's no OS to boot—the container process starts almost instantly.
+- **Startup**: Containers launch in milliseconds versus minutes for VMs. There's no OS to boot-the container process starts almost instantly.
 - **Density**: A server can run thousands of containers versus dozens of VMs. The reduced overhead means more applications per server.
 - **Resource usage**: Containers add minimal overhead versus significant overhead for each VM. The shared kernel means less memory and CPU waste.
 
@@ -29,7 +29,7 @@ Every developer has experienced this frustrating scenario: code runs perfectly o
 - **Operating system differences**: Code developed on macOS behaves differently on Linux
 - **Missing dependencies**: A tool installed globally on your machine isn't present in production
 
-Containers solve this by packaging your application with its complete runtime environment. The container includes your code, the exact runtime version, all system tools, libraries, and settings. This package runs identically whether on a developer's laptop, test server, or production cloud. The phrase "works on my machine" becomes "works in my container"—and if it works in your container, it works everywhere.
+Containers solve this by packaging your application with its complete runtime environment. The container includes your code, the exact runtime version, all system tools, libraries, and settings. This package runs identically whether on a developer's laptop, test server, or production cloud. The phrase "works on my machine" becomes "works in my container"-and if it works in your container, it works everywhere.
 
 ### 2. Dependency Conflicts Between Applications
 
@@ -67,7 +67,7 @@ A typical VM might allocate 4GB RAM and 20GB storage just for the operating syst
 - CPU cycles wasted on redundant OS processes
 - Network bandwidth for OS updates across all VMs
 
-Containers share the host OS kernel, eliminating this duplication. Those same ten microservices might use just 1GB total, leaving more resources for your actual applications. This efficiency translates directly to cost savings—fewer servers needed, lower cloud bills, reduced data center footprint.
+Containers share the host OS kernel, eliminating this duplication. Those same ten microservices might use just 1GB total, leaving more resources for your actual applications. This efficiency translates directly to cost savings-fewer servers needed, lower cloud bills, reduced data center footprint.
 
 ### 5. Slow Deployment and Scaling
 
@@ -84,15 +84,15 @@ Containers start in seconds or less, enabling:
 
 ### Linux Kernel Features That Enable Containers
 
-Containers aren't magic—they're isolated processes leveraging three key Linux kernel features that have existed for years. Understanding these features demystifies containers and explains their capabilities and limitations.
+Containers aren't magic-they're isolated processes leveraging three key Linux kernel features that have existed for years. Understanding these features demystifies containers and explains their capabilities and limitations.
 
 #### Namespaces: Creating Isolated Worlds
 
-Namespaces are a Linux kernel feature that partitions system resources so different processes see different views of the system. Think of namespaces like virtual reality headsets—each process wearing a headset sees a different world, unaware that other worlds exist. Linux provides eight types of namespaces:
+Namespaces are a Linux kernel feature that partitions system resources so different processes see different views of the system. Think of namespaces like virtual reality headsets-each process wearing a headset sees a different world, unaware that other worlds exist. Linux provides eight types of namespaces:
 
 1. **PID namespace**: Controls what processes a container can see. Inside the container, your application might be PID 1 (like it's the only process running), but on the host, it might be PID 3847. The container can't see or interact with other processes on the host.
 
-2. **Network namespace**: Gives each container its own network stack—network interfaces, IP addresses, routing tables, firewall rules. Container A might think it's listening on port 80, and Container B also thinks it's listening on port 80. Neither conflicts because they have separate network namespaces.
+2. **Network namespace**: Gives each container its own network stack-network interfaces, IP addresses, routing tables, firewall rules. Container A might think it's listening on port 80, and Container B also thinks it's listening on port 80. Neither conflicts because they have separate network namespaces.
 
 3. **Mount namespace**: Controls what parts of the filesystem a container can see. Each container has its own root filesystem and can't see or access files from other containers or the host (unless explicitly shared).
 
@@ -106,7 +106,7 @@ Namespaces are a Linux kernel feature that partitions system resources so differ
 
 8. **Time namespace**: Allows containers to have different system time views, useful for testing time-dependent code.
 
-When you start a container, the kernel creates new namespaces for it. The containerized process believes it's running on a dedicated system—it sees only its own processes, network, and filesystem.
+When you start a container, the kernel creates new namespaces for it. The containerized process believes it's running on a dedicated system-it sees only its own processes, network, and filesystem.
 
 #### Control Groups (cgroups): Resource Management
 
@@ -128,7 +128,7 @@ These limits prevent "noisy neighbor" problems where one container consumes all 
 
 #### Union Filesystems: Efficient Layer Management
 
-Union filesystems enable Docker's layer architecture—one of its most clever innovations. Here's how it works:
+Union filesystems enable Docker's layer architecture-one of its most clever innovations. Here's how it works:
 
 Imagine transparencies stacked on an overhead projector. Each transparency can add content, and when you look down through the stack, you see the combined image. Union filesystems work similarly:
 
@@ -138,7 +138,7 @@ Imagine transparencies stacked on an overhead projector. Each transparency can a
 
 3. **Container layer** (read-write): A blank transparency on top where runtime changes are written.
 
-When you read a file, the filesystem looks down through the layers until it finds the file. When you write, it uses "copy-on-write"—copying the file to the top layer before modifying it. The original remains unchanged in lower layers.
+When you read a file, the filesystem looks down through the layers until it finds the file. When you write, it uses "copy-on-write"-copying the file to the top layer before modifying it. The original remains unchanged in lower layers.
 
 This architecture provides massive storage savings. If you run 100 containers from the same nginx image, the base nginx layers exist only once on disk. Each container just adds its own thin writable layer for runtime changes. A 200MB base image + 100 containers might use just 201MB total (200MB base + 1MB of changes across all containers) instead of 20GB.
 
@@ -215,11 +215,11 @@ Docker uses a client-server model that's important to understand:
 
 1. **Docker Client**: The `docker` command you type. It's just a CLI tool that sends requests to the Docker daemon. The client can connect to local or remote daemons.
 
-2. **Docker Daemon** (dockerd): The background service doing all the work—building images, running containers, managing networks and volumes. It exposes a REST API that the client uses.
+2. **Docker Daemon** (dockerd): The background service doing all the work-building images, running containers, managing networks and volumes. It exposes a REST API that the client uses.
 
 3. **Docker Registry**: Storage for images. Docker Hub is the default public registry, but you can use private registries like AWS ECR, Google Container Registry, or self-hosted registries.
 
-When you type a Docker command, the client sends an API request to the daemon, which performs the action and returns results. This architecture allows remote Docker management—your client can control Docker daemons on other machines.
+When you type a Docker command, the client sends an API request to the daemon, which performs the action and returns results. This architecture allows remote Docker management-your client can control Docker daemons on other machines.
 
 ## Working with Docker Images
 
@@ -285,7 +285,7 @@ docker system df
 docker system df -v
 ```
 
-Layers are immutable—once created, they never change. When you update an image, Docker creates new layers with the changes. This immutability enables sharing: multiple images can reference the same base layers without duplicating storage.
+Layers are immutable-once created, they never change. When you update an image, Docker creates new layers with the changes. This immutability enables sharing: multiple images can reference the same base layers without duplicating storage.
 
 ### Image Tagging Strategy
 
@@ -505,7 +505,7 @@ docker rm -f mem-limited swap-limited cpu-limited cpu-shares oom-test
 
 ### Understanding Volume Types
 
-Containers are ephemeral—when removed, their data disappears. This is problematic for databases, user uploads, or any persistent state. Docker provides three mechanisms for data persistence:
+Containers are ephemeral-when removed, their data disappears. This is problematic for databases, user uploads, or any persistent state. Docker provides three mechanisms for data persistence:
 
 1. **Named Volumes**: Docker manages these in a special directory (/var/lib/docker/volumes/ on Linux). They're the best choice for production because:
    - Docker handles permissions and paths
@@ -643,7 +643,7 @@ rm -rf ~/dev-site
 
 ### tmpfs Mounts for Sensitive Data
 
-tmpfs mounts provide memory-only storage that never touches disk—perfect for sensitive data:
+tmpfs mounts provide memory-only storage that never touches disk-perfect for sensitive data:
 
 ```bash
 # Create container with tmpfs mount
@@ -693,7 +693,7 @@ Docker networking is crucial for container communication. Docker provides severa
 
 1. **bridge** (default): Creates an isolated network segment for containers. Containers can communicate with each other and the host can reach them, but they're isolated from external networks unless you publish ports. This is perfect for single-host applications.
 
-2. **host**: Removes network isolation—container uses the host's network stack directly. The container shares the host's IP address and ports. Fast but less secure, used when you need maximum network performance.
+2. **host**: Removes network isolation-container uses the host's network stack directly. The container shares the host's IP address and ports. Fast but less secure, used when you need maximum network performance.
 
 3. **none**: No network access at all. The container has only a loopback interface. Used for maximum isolation or containers that don't need network.
 
@@ -733,7 +733,7 @@ docker rm -f app1 app2
 
 ### Custom Bridge Networks (Recommended)
 
-Custom networks provide automatic DNS resolution between containers—a major advantage:
+Custom networks provide automatic DNS resolution between containers-a major advantage:
 
 ```bash
 # Create custom network
@@ -1165,7 +1165,7 @@ The optimization checklist, in order of impact:
 - **Order instructions from least- to most-frequently-changing** so expensive dependency layers stay cached. Copying `requirements.txt`/`package.json` and installing *before* copying the rest of the code is the key pattern.
 - **Combine related commands in a single `RUN`** with `&&`, and remove package-manager caches in the *same* layer (`apt-get ... && rm -rf /var/lib/apt/lists/*`, `apk add --no-cache`). Cleaning in a later layer does not shrink the earlier one.
 - **Avoid storing build caches**: `pip install --no-cache-dir`, `npm ci --omit=dev`, and strip binaries with linker flags like `-ldflags="-s -w"`.
-- **Exclude unneeded files** with a `.dockerignore` (covered in the Security section) so the build context — and `COPY . .` — stays small.
+- **Exclude unneeded files** with a `.dockerignore` (covered in the Security section) so the build context - and `COPY . .` - stays small.
 
 Inspect and audit your images with `docker image ls`, `docker history --human <image>`, and the external `dive` tool, which visualizes each layer's contents and flags wasted space.
 
@@ -1805,7 +1805,7 @@ cd ~ && rm -rf ~/dockerignore-demo
 
 ### Protecting Secrets During Image Builds
 
-Sooner or later a build needs a secret—an API token to download a private package, SSH keys to clone a private repository, or registry credentials. The dangerous trap is that **anything baked into an image during the build stays there**. Every `ARG`, `ENV`, and `COPY`'d file becomes part of an immutable, read-only layer. Deleting the secret in a later `RUN` does **not** remove it: the value still lives in the earlier layer and is trivially recovered by anyone who pulls the image. This demo first shows the leak, then two correct ways to hide information at build time:
+Sooner or later a build needs a secret-an API token to download a private package, SSH keys to clone a private repository, or registry credentials. The dangerous trap is that **anything baked into an image during the build stays there**. Every `ARG`, `ENV`, and `COPY`'d file becomes part of an immutable, read-only layer. Deleting the secret in a later `RUN` does **not** remove it: the value still lives in the earlier layer and is trivially recovered by anyone who pulls the image. This demo first shows the leak, then two correct ways to hide information at build time:
 
 ```bash
 # Create project directory
@@ -1909,7 +1909,7 @@ cd ~
 The rules of thumb for keeping information out of images:
 
 - **Never pass secrets through `ARG` or `ENV`.** Build args are recorded in the image history (`docker history`), and env vars persist in the running container's environment.
-- **Never `COPY` a secret in, even if you delete it later**—the original remains in an earlier layer and is recoverable from the image.
+- **Never `COPY` a secret in, even if you delete it later**-the original remains in an earlier layer and is recoverable from the image.
 - **Use BuildKit secret mounts (`RUN --mount=type=secret,...`)** when a secret is only needed *during* the build, or a **multi-stage build** when you only need to ship the *result* of using the secret.
 - **Inject runtime secrets at runtime, not build time**: use `-e`/`--env-file`, mounted files, or Docker/Swarm secrets (see the Swarm secret example later in this module). In Kubernetes, this is handled by **Secrets**, covered later in the course.
 - Combine this with a **`.dockerignore`** (previous section) so credential files never enter the build context in the first place.

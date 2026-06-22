@@ -1493,7 +1493,7 @@ components:
 
 #### Variable Substitution
 
-The legacy `vars` field is **deprecated** in Kustomize — it works only in a limited
+The legacy `vars` field is **deprecated** in Kustomize - it works only in a limited
 set of fields and is unreliable inside `configMapGenerator` literals. Use the
 [`replacements`](https://kubectl.docs.kubernetes.io/references/kustomize/kustomization/replacements/)
 field instead: it copies a value from a `source` object's field into one or more

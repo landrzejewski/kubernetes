@@ -4,7 +4,7 @@
 
 Kubernetes emerged from Google's need to manage billions of containers across thousands of machines. While Docker solved the problem of packaging applications consistently, it didn't address the complexity of running hundreds or thousands of containers in production. Questions like "Which server should run this container?", "What happens when a container crashes?", "How do we update without downtime?", and "How do we scale based on load?" needed systematic answers.
 
-Kubernetes provides these answers through a declarative orchestration system. Instead of telling Kubernetes exactly how to run your applications (imperative), you describe what you want (declarative), and Kubernetes figures out how to achieve and maintain that state. This fundamental shift from "do this" to "make it like this" enables self-healing, auto-scaling, and continuous reconciliation—the core strengths of Kubernetes.
+Kubernetes provides these answers through a declarative orchestration system. Instead of telling Kubernetes exactly how to run your applications (imperative), you describe what you want (declarative), and Kubernetes figures out how to achieve and maintain that state. This fundamental shift from "do this" to "make it like this" enables self-healing, auto-scaling, and continuous reconciliation-the core strengths of Kubernetes.
 
 ### The Declarative Model in Practice
 
@@ -18,7 +18,7 @@ Kubernetes works like that GPS. You declare "I want 3 copies of my web applicati
 
 A Kubernetes cluster consists of two distinct types of machines working in concert: the control plane (the brain) and worker nodes (the muscles). This separation of concerns allows each component to focus on its specific responsibilities while maintaining cluster-wide coordination.
 
-The control plane makes global decisions about the cluster—scheduling applications, maintaining desired state, rolling out updates, and responding to events. Worker nodes provide the computational resources where your actual applications run. This architecture scales elegantly: you can add more worker nodes for capacity without complicating cluster management, and you can replicate control plane components for high availability without affecting application workloads.
+The control plane makes global decisions about the cluster-scheduling applications, maintaining desired state, rolling out updates, and responding to events. Worker nodes provide the computational resources where your actual applications run. This architecture scales elegantly: you can add more worker nodes for capacity without complicating cluster management, and you can replicate control plane components for high availability without affecting application workloads.
 
 ### Control Plane Components: The Cluster's Brain
 
@@ -26,15 +26,15 @@ The control plane orchestrates the entire cluster through several specialized co
 
 #### kube-apiserver: The Communication Hub
 
-The API server is the front door to your Kubernetes cluster—every single operation passes through it. When you run a kubectl command, when applications query cluster state, when nodes report status, or when controllers take action, they all communicate through the API server. 
+The API server is the front door to your Kubernetes cluster-every single operation passes through it. When you run a kubectl command, when applications query cluster state, when nodes report status, or when controllers take action, they all communicate through the API server. 
 
 Think of it as the central nervous system of the cluster. It doesn't make decisions itself but provides the communication pathway for all components. The API server validates requests, authenticates users, authorizes actions, and then persists approved changes to etcd. It also serves as the aggregation point for all cluster information, transforming and serving data from etcd in a consumable format.
 
-The API server exposes a RESTful interface, making it accessible to any HTTP client. This design enables the rich ecosystem of Kubernetes tools and allows you to interact with the cluster using any programming language. Every resource in Kubernetes—Pods, Services, Deployments—is accessible through standardized REST endpoints like `/api/v1/pods` or `/apis/apps/v1/deployments`.
+The API server exposes a RESTful interface, making it accessible to any HTTP client. This design enables the rich ecosystem of Kubernetes tools and allows you to interact with the cluster using any programming language. Every resource in Kubernetes-Pods, Services, Deployments-is accessible through standardized REST endpoints like `/api/v1/pods` or `/apis/apps/v1/deployments`.
 
 #### etcd: The Cluster's Memory
 
-etcd serves as the cluster's source of truth, storing all cluster data in a distributed key-value store. Every piece of information about your cluster—from pod definitions to configuration secrets—lives in etcd. It's the only stateful component in the control plane, making it critically important for cluster operation.
+etcd serves as the cluster's source of truth, storing all cluster data in a distributed key-value store. Every piece of information about your cluster-from pod definitions to configuration secrets-lives in etcd. It's the only stateful component in the control plane, making it critically important for cluster operation.
 
 What makes etcd special is its consistency guarantees. Using the Raft consensus algorithm, etcd ensures that data remains consistent across multiple instances even during network partitions or node failures. When you update a Deployment, that change is written to etcd. When the scheduler needs to find nodes for pods, it queries etcd. When controllers check current state, they read from etcd.
 
@@ -44,13 +44,13 @@ The distributed nature of etcd enables high availability. In production clusters
 
 The scheduler has one job: finding the best home for newly created Pods. When you create a Deployment requesting 3 replicas, the scheduler decides which worker nodes should run those Pods. This decision-making process is surprisingly sophisticated.
 
-The scheduler operates in two phases. First, it filters nodes that don't meet the Pod's requirements—nodes without enough CPU or memory, nodes with incompatible hardware, nodes explicitly excluded by node selectors. Second, it scores the remaining nodes based on various factors: spreading Pods across nodes for high availability, bin packing to maximize resource utilization, respecting affinity rules that keep or separate certain Pods.
+The scheduler operates in two phases. First, it filters nodes that don't meet the Pod's requirements-nodes without enough CPU or memory, nodes with incompatible hardware, nodes explicitly excluded by node selectors. Second, it scores the remaining nodes based on various factors: spreading Pods across nodes for high availability, bin packing to maximize resource utilization, respecting affinity rules that keep or separate certain Pods.
 
 The scheduler's decisions are optimal at the moment but not permanent. If a better node becomes available later, the scheduler won't move existing Pods (that would be disruptive). However, if a Pod needs to be rescheduled due to node failure or eviction, the scheduler makes a fresh decision based on current cluster state.
 
 #### kube-controller-manager: The Enforcement System
 
-The controller manager runs multiple control loops that continuously monitor cluster state and take corrective action when reality doesn't match desired state. Think of controllers as thermostats—they measure current temperature (state), compare it to desired temperature (spec), and take action (heating/cooling) to close the gap.
+The controller manager runs multiple control loops that continuously monitor cluster state and take corrective action when reality doesn't match desired state. Think of controllers as thermostats-they measure current temperature (state), compare it to desired temperature (spec), and take action (heating/cooling) to close the gap.
 
 The controller manager bundles many controllers:
 
@@ -71,7 +71,7 @@ The container runtime is the software that actually runs containers on each node
 
 The runtime handles the complete container lifecycle: pulling images from registries, creating container sandboxes with proper isolation, starting and stopping containers, managing container resources, and cleaning up terminated containers. It translates high-level Pod specifications into low-level system calls that create isolated processes.
 
-The abstraction of CRI means Kubernetes doesn't care which runtime you use—it speaks CRI, and the runtime translates to its native operations. This flexibility allows you to choose runtimes based on your needs: containerd for simplicity, CRI-O for Red Hat environments, or specialized runtimes for specific security or performance requirements.
+The abstraction of CRI means Kubernetes doesn't care which runtime you use-it speaks CRI, and the runtime translates to its native operations. This flexibility allows you to choose runtimes based on your needs: containerd for simplicity, CRI-O for Red Hat environments, or specialized runtimes for specific security or performance requirements.
 
 #### kubelet: The Node Agent
 
@@ -91,7 +91,7 @@ The kubelet only manages containers created through Kubernetes. If you manually 
 
 kube-proxy enables the Kubernetes Service abstraction, making network communication seamless despite Pods constantly being created and destroyed. It runs on every node, maintaining network rules that direct traffic to the appropriate Pods.
 
-Understanding kube-proxy requires understanding the problem it solves. Pods are ephemeral—they come and go, getting new IP addresses each time. If your frontend Pod needs to communicate with backend Pods, hardcoding IP addresses won't work. Services provide stable virtual IPs, and kube-proxy makes these virtual IPs actually work.
+Understanding kube-proxy requires understanding the problem it solves. Pods are ephemeral-they come and go, getting new IP addresses each time. If your frontend Pod needs to communicate with backend Pods, hardcoding IP addresses won't work. Services provide stable virtual IPs, and kube-proxy makes these virtual IPs actually work.
 
 kube-proxy operates in different modes:
 
@@ -113,7 +113,7 @@ When you create a Service named "database" in the "production" namespace, DNS au
 - `database.production` - accessible from within the same namespace
 - `database.production.svc.cluster.local` - fully qualified domain name accessible from anywhere in the cluster
 
-Pods can simply reference services by name, and DNS resolves them to the current cluster IP. This abstraction means your application code doesn't need to know about IP addresses or even which namespace it's running in—it just needs to know service names.
+Pods can simply reference services by name, and DNS resolves them to the current cluster IP. This abstraction means your application code doesn't need to know about IP addresses or even which namespace it's running in-it just needs to know service names.
 
 #### Dashboard: Visual Cluster Management
 
@@ -144,7 +144,7 @@ Ingress controllers implement the Ingress resource, providing HTTP/HTTPS routing
 
 Kubernetes objects are persistent entities that represent your cluster's state. When you create an object, you're telling Kubernetes "this is what I want to exist in my cluster." Kubernetes then works continuously to ensure that object exists and maintains its specified characteristics.
 
-Objects aren't just data structures—they're living entities with controllers watching them. Create a Deployment object requesting 3 replicas, and the Deployment controller ensures 3 Pods always run. Create a Service object, and the Endpoints controller maintains the connection between the Service and its Pods. This object-controller pattern permeates Kubernetes.
+Objects aren't just data structures-they're living entities with controllers watching them. Create a Deployment object requesting 3 replicas, and the Deployment controller ensures 3 Pods always run. Create a Service object, and the Endpoints controller maintains the connection between the Service and its Pods. This object-controller pattern permeates Kubernetes.
 
 Every object follows the same fundamental pattern:
 
@@ -162,7 +162,7 @@ Every Kubernetes object contains two critical nested structures that work togeth
 
 #### The Spec Field: What You Want
 
-The spec defines your desired state—the characteristics you want the object to have. When you create a Deployment with `replicas: 3`, you're populating the spec. When you set `image: nginx:latest`, you're defining the spec. The spec is your declaration of intent.
+The spec defines your desired state-the characteristics you want the object to have. When you create a Deployment with `replicas: 3`, you're populating the spec. When you set `image: nginx:latest`, you're defining the spec. The spec is your declaration of intent.
 
 Different object types have different spec structures:
 - Pod specs define containers, volumes, and scheduling constraints
@@ -174,7 +174,7 @@ The spec is immutable for some fields (you can't change a Pod's nodeName once sc
 
 #### The Status Field: What Actually Is
 
-The status reflects current observed state as determined by controllers and the kubelet. While you define the spec, Kubernetes manages the status. You can read the status, but you can't directly modify it—it's the system's record of reality.
+The status reflects current observed state as determined by controllers and the kubelet. While you define the spec, Kubernetes manages the status. You can read the status, but you can't directly modify it-it's the system's record of reality.
 
 Status information varies by object type:
 - Pod status includes phase (Pending, Running, Succeeded, Failed), conditions, and container states
@@ -190,7 +190,7 @@ Every Kubernetes object must include four fields that provide essential metadata
 
 #### apiVersion: The API Contract
 
-The apiVersion specifies which version of the Kubernetes API you're using to create the object. This isn't just bureaucracy—it's a contract between you and Kubernetes about what fields are available and how they behave.
+The apiVersion specifies which version of the Kubernetes API you're using to create the object. This isn't just bureaucracy-it's a contract between you and Kubernetes about what fields are available and how they behave.
 
 API versions follow a progression:
 - `v1alpha1`: Early experimental API, may change dramatically
@@ -203,7 +203,7 @@ Different resources live at different API versions. Core resources like Pods and
 
 The kind field specifies what type of object you're creating. This determines which controller manages the object, what fields are valid in the spec, and how the object behaves. Common kinds include Pod, Service, Deployment, ConfigMap, Secret, and dozens more.
 
-The kind is immutable—you can't change a Deployment into a Service. Each kind has specific behaviors and purposes that define its role in the cluster.
+The kind is immutable-you can't change a Deployment into a Service. Each kind has specific behaviors and purposes that define its role in the cluster.
 
 #### metadata: The Object's Identity
 
@@ -219,13 +219,13 @@ Metadata provides the framework for finding, organizing, and managing objects th
 
 #### spec: The Desired State
 
-The spec contains the desired state specific to the object's kind. This is where you define what you want: which containers to run, how many replicas, what ports to expose, which nodes to use. The spec structure varies completely between different kinds—a Pod spec looks nothing like a Service spec.
+The spec contains the desired state specific to the object's kind. This is where you define what you want: which containers to run, how many replicas, what ports to expose, which nodes to use. The spec structure varies completely between different kinds-a Pod spec looks nothing like a Service spec.
 
 ## Core Kubernetes Resources
 
 ### Pods: The Atomic Unit
 
-Pods are Kubernetes' fundamental execution unit, but they're often misunderstood. A Pod isn't just a container—it's a collection of one or more containers that are tightly coupled and need to work together. These containers share networking (same IP address and port space) and storage (can mount the same volumes).
+Pods are Kubernetes' fundamental execution unit, but they're often misunderstood. A Pod isn't just a container-it's a collection of one or more containers that are tightly coupled and need to work together. These containers share networking (same IP address and port space) and storage (can mount the same volumes).
 
 Why not just run containers directly? Pods provide several critical capabilities:
 
@@ -283,7 +283,7 @@ spec:
     emptyDir: {}
 ```
 
-Despite being fundamental, you rarely create Pods directly. They're ephemeral by design—when a Pod dies, it's gone forever. Higher-level controllers like Deployments create and manage Pods, providing durability through replacement rather than resurrection.
+Despite being fundamental, you rarely create Pods directly. They're ephemeral by design-when a Pod dies, it's gone forever. Higher-level controllers like Deployments create and manage Pods, providing durability through replacement rather than resurrection.
 
 ### Deployments: Production-Ready Applications
 
@@ -366,7 +366,7 @@ spec:
             cpu: "200m"
 ```
 
-Deployments excel at managing stateless applications—web servers, APIs, microservices—where any replica can handle any request. The Deployment controller continuously ensures the desired number of healthy Pods run, automatically replacing any that fail or are evicted.
+Deployments excel at managing stateless applications-web servers, APIs, microservices-where any replica can handle any request. The Deployment controller continuously ensures the desired number of healthy Pods run, automatically replacing any that fail or are evicted.
 
 ### Services: Stable Network Endpoints
 
@@ -530,7 +530,7 @@ spec:
         path: features.json
 ```
 
-ConfigMaps enable configuration hot-reloading when mounted as volumes—update the ConfigMap, and files in Pods automatically update (though applications must watch for changes). This enables dynamic reconfiguration without Pod restarts.
+ConfigMaps enable configuration hot-reloading when mounted as volumes-update the ConfigMap, and files in Pods automatically update (though applications must watch for changes). This enables dynamic reconfiguration without Pod restarts.
 
 ### Secrets: Sensitive Data Management
 
@@ -609,7 +609,7 @@ Kubernetes provides several Secret types for specific use cases:
 
 PersistentVolumes (PVs) and PersistentVolumeClaims (PVCs) abstract storage details from Pod definitions. Instead of Pods directly referencing storage implementations, they claim storage with certain characteristics, and Kubernetes provisions appropriate volumes.
 
-This abstraction enables portability—the same Pod definition works whether storage comes from AWS EBS, Google Persistent Disks, NFS, or local SSDs. The cluster administrator configures available storage; developers just request what they need.
+This abstraction enables portability-the same Pod definition works whether storage comes from AWS EBS, Google Persistent Disks, NFS, or local SSDs. The cluster administrator configures available storage; developers just request what they need.
 
 ```yaml
 # File: storage-example.yaml
@@ -663,7 +663,7 @@ spec:
       claimName: data-claim
 ```
 
-Storage classes enable dynamic provisioning—instead of pre-creating PVs, the cluster automatically provisions storage when PVCs are created:
+Storage classes enable dynamic provisioning-instead of pre-creating PVs, the cluster automatically provisions storage when PVCs are created:
 
 ```yaml
 # File: storageclass-example.yaml
@@ -843,7 +843,7 @@ spec:
 
 ### The Namespace Concept
 
-Namespaces provide logical isolation within a Kubernetes cluster, creating virtual clusters that share physical resources but maintain separation. Think of namespaces as apartments in a building—each has its own space and privacy, but they share the building's infrastructure.
+Namespaces provide logical isolation within a Kubernetes cluster, creating virtual clusters that share physical resources but maintain separation. Think of namespaces as apartments in a building-each has its own space and privacy, but they share the building's infrastructure.
 
 Namespaces solve several problems:
 

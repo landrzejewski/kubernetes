@@ -1,5 +1,5 @@
 1. What Rancher is
-   Rancher is a container management platform that sits on top of Kubernetes. It is not a replacement for Kubernetes — rather, it enhances and simplifies Kubernetes management.
+   Rancher is a container management platform that sits on top of Kubernetes. It is not a replacement for Kubernetes - rather, it enhances and simplifies Kubernetes management.
    Key features of Rancher:
 1. Multi-cluster management – You can manage multiple Kubernetes clusters from different providers (on-prem, cloud, or hosted) in one dashboard.
 2. Cluster provisioning – Rancher can provision Kubernetes clusters for you on bare metal, VMs, or cloud providers (AWS, GCP, Azure, etc.).
@@ -15,7 +15,7 @@
 * You manage the control plane and nodes directly.
 * All operations (upgrade, scaling, backup, RBAC) are done manually or scripted by you.
 * You get full control, but also full responsibility for maintenance.
-* No built-in UI — you can optionally install the Kubernetes Dashboard.
+* No built-in UI - you can optionally install the Kubernetes Dashboard.
 
 3. Rancher vs Vanilla Kubernetes
    Feature	Vanilla Kubernetes	Rancher
@@ -52,7 +52,7 @@
 
 ✅ In short: Rancher = management and orchestration layer on top of Kubernetes. Vanilla Kubernetes = the raw platform itself. Rancher adds convenience, security, and multi-cluster capabilities.
 
-If you want, I can also draw a diagram showing the difference visually between vanilla Kubernetes and a Rancher-managed multi-cluster setup — it makes it super clear.
+If you want, I can also draw a diagram showing the difference visually between vanilla Kubernetes and a Rancher-managed multi-cluster setup - it makes it super clear.
 Do you want me to do that?
 
 

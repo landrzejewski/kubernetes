@@ -58,7 +58,7 @@ Understanding these factors is crucial for Kubernetes success. They shape how ap
 
 Kubernetes didn't appear in a vacuum. Its design draws heavily from Google Borg, an internal platform that managed Google's vast infrastructure for over a decade. Borg orchestrated everything from Search to Gmail, handling billions of containers across hundreds of thousands of machines.
 
-Google built Borg to solve their unique scale challenges in the early 2000s. As the system matured, it became clear that many organizations faced similar problems. The lessons learned from operating Borg—about resource allocation, failure handling, and API design—were too valuable to keep proprietary.
+Google built Borg to solve their unique scale challenges in the early 2000s. As the system matured, it became clear that many organizations faced similar problems. The lessons learned from operating Borg-about resource allocation, failure handling, and API design-were too valuable to keep proprietary.
 
 In 2014, Google unveiled Kubernetes as an open-source project that distilled Borg's essential insights into a platform anyone could use. Unlike Borg, which was tightly coupled to Google's infrastructure, Kubernetes was designed to be cloud-agnostic from day one.
 
@@ -66,7 +66,7 @@ The following year, Google donated Kubernetes to the newly formed Cloud Native C
 
 ## The Cloud Native Computing Foundation
 
-The Cloud Native Computing Foundation (CNCF) operates under the Linux Foundation umbrella, serving as the neutral home for cloud native projects. Its mission extends beyond hosting code—it establishes standards, certifies implementations, and nurtures the ecosystem that makes cloud native computing accessible to all organizations.
+The Cloud Native Computing Foundation (CNCF) operates under the Linux Foundation umbrella, serving as the neutral home for cloud native projects. Its mission extends beyond hosting code-it establishes standards, certifies implementations, and nurtures the ecosystem that makes cloud native computing accessible to all organizations.
 
 Kubernetes represents the CNCF's most prominent project, but it's far from the only one. The foundation hosts projects for monitoring, logging, service mesh, storage, and dozens of other cloud native capabilities. This creates a rich ecosystem where different solutions can compete and complement each other.
 
@@ -74,7 +74,7 @@ The CNCF's vendor-neutral governance ensures no single company can dominate the 
 
 ## Navigating the Kubernetes Ecosystem
 
-The abundance of CNCF projects creates both opportunity and complexity. For any given need—ingress control, service mesh, continuous deployment—multiple projects offer solutions. This diversity allows organizations to choose tools that match their specific requirements, but it also demands expertise to make informed decisions.
+The abundance of CNCF projects creates both opportunity and complexity. For any given need-ingress control, service mesh, continuous deployment-multiple projects offer solutions. This diversity allows organizations to choose tools that match their specific requirements, but it also demands expertise to make informed decisions.
 
 When deploying Kubernetes, organizations must decide which additional projects to adopt. Should they use Prometheus or Datadog for monitoring? Istio or Linkerd for service mesh? Helm or Kustomize for package management? These choices significantly impact the capabilities and complexity of the final platform.
 
@@ -86,7 +86,7 @@ Others choose pre-integrated distributions that bundle Kubernetes with complemen
 
 Kubernetes distributions package the core platform with additional tools, creating complete solutions for specific use cases. Like Linux distributions that bundle the kernel with utilities and package managers, Kubernetes distributions provide integrated, tested combinations of cloud native components.
 
-Distributions vary significantly in their philosophy. Opinionated distributions make technology choices for you, selecting specific solutions for monitoring, networking, and storage. This approach simplifies adoption—you get a working platform quickly—but limits flexibility if you later need different capabilities.
+Distributions vary significantly in their philosophy. Opinionated distributions make technology choices for you, selecting specific solutions for monitoring, networking, and storage. This approach simplifies adoption-you get a working platform quickly-but limits flexibility if you later need different capabilities.
 
 Open distributions provide options at each layer, letting you choose between different ingress controllers, CNI plugins, or storage providers. This flexibility comes with complexity, requiring more expertise to select and configure components appropriately.
 

@@ -1,4 +1,4 @@
-Nice — below is a complete, practical, hands-by-step tutorial for a **vanilla kubeadm** Kubernetes control-plane which covers:
+Nice - below is a complete, practical, hands-by-step tutorial for a **vanilla kubeadm** Kubernetes control-plane which covers:
 
 * how to **safely upgrade** the cluster (control plane + nodes),
 * how to **backup etcd** (snapshots) and **restore** from them,
@@ -38,7 +38,7 @@ I assume a kubeadm-managed cluster where the control plane runs as static pods o
 * Upgrade order:
 
     1. Upgrade `kubeadm` package on control plane node.
-    2. Run `kubeadm upgrade apply <version>` on the control-plane node(s) — this updates control plane static manifests (kube-apiserver, kube-controller-manager, kube-scheduler) to the new images.
+    2. Run `kubeadm upgrade apply <version>` on the control-plane node(s) - this updates control plane static manifests (kube-apiserver, kube-controller-manager, kube-scheduler) to the new images.
     3. Upgrade kubelet and kubectl packages and restart kubelet on each node (control plane and workers). Drain workers during kubelet upgrade.
 * For HA clusters (multiple control planes), upgrade control planes one at a time.
 
@@ -46,11 +46,11 @@ I assume a kubeadm-managed cluster where the control plane runs as static pods o
 
 ---
 
-# 3. Upgrade example (Ubuntu/Debian with apt) — step-by-step
+# 3. Upgrade example (Ubuntu/Debian with apt) - step-by-step
 
 > Replace `<K8S_VERSION>` with the target `vX.Y.Z` (e.g. `v1.28.2`). Use the exact semver returned by `kubeadm upgrade plan`.
 
-## 3.1 On the control-plane node — take etcd snapshot first
+## 3.1 On the control-plane node - take etcd snapshot first
 
 (We run this on the control plane so we can access the local etcd via the static pod certs.)
 
@@ -128,7 +128,7 @@ kubectl uncordon <node>
 
 ---
 
-# 4. etcd — backup (snapshot) and restore (detailed)
+# 4. etcd - backup (snapshot) and restore (detailed)
 
 ## 4.1 Where etcd data is
 
@@ -166,9 +166,9 @@ Store `*.db` snapshot in immutable off-site storage (scp to backup server, S3, e
 
 ## 4.3 Restoring etcd from snapshot (single control-plane example)
 
-> This is destructive for existing etcd — only perform if you need a restore.
+> This is destructive for existing etcd - only perform if you need a restore.
 
-1. Stop kube-apiserver (kubeadm static pods are managed by kubelet — simplest approach is to stop kubelet so the static pods don't restart while we restore).
+1. Stop kube-apiserver (kubeadm static pods are managed by kubelet - simplest approach is to stop kubelet so the static pods don't restart while we restore).
 
 ```bash
 sudo systemctl stop kubelet
@@ -197,7 +197,7 @@ sudo /usr/bin/etcdctl snapshot restore ${SNAP} \
   --initial-cluster-state new
 ```
 
-> For HA with multiple control-planes, restoring is more involved — you usually restore a snapshot to one member, then rejoin other members or rebuild nodes. See HA notes below.
+> For HA with multiple control-planes, restoring is more involved - you usually restore a snapshot to one member, then rejoin other members or rebuild nodes. See HA notes below.
 
 4. Recreate / adjust ownership:
 
@@ -226,7 +226,7 @@ Then check `kubectl get nodes` and `kubectl get pods -A`.
 
 ---
 
-# 5. Encrypt etcd communication (TLS) — why & how
+# 5. Encrypt etcd communication (TLS) - why & how
 
 * By default kubeadm generates TLS certs for etcd under `/etc/kubernetes/pki/etcd/` and configures the static pod to use certs. This secures:
 
@@ -292,15 +292,15 @@ ETCDCTL_API=3 /usr/bin/etcdctl --endpoints=http://127.0.0.1:2379 endpoint status
 
 ---
 
-# 6. Encrypt etcd data at rest — options & examples
+# 6. Encrypt etcd data at rest - options & examples
 
 There are three common approaches:
 
-## Option A — Disk-level encryption (LUKS) for `/var/lib/etcd`
+## Option A - Disk-level encryption (LUKS) for `/var/lib/etcd`
 
 Encrypt the underlying disk or partition using LUKS (recommended for on-prem single-host encryption). Example: create encrypted LVM or LUKS partition and mount it to `/var/lib/etcd` before starting etcd.
 
-Quick LUKS example (DESTROYS DEVICE — be careful):
+Quick LUKS example (DESTROYS DEVICE - be careful):
 
 ```bash
 # example device: /dev/sdb  -- double-check device!
@@ -314,11 +314,11 @@ sudo mount /dev/mapper/etcdcrypt /var/lib/etcd
 
 Pros: full-disk encryption, transparent to etcd. Cons: requires key management at OS level and boot unlock.
 
-## Option B — etcd data encryption using filesystem-level encryption or application-layer encryption
+## Option B - etcd data encryption using filesystem-level encryption or application-layer encryption
 
 etcd itself doesn't provide built-in general data-at-rest encryption for its files beyond using TLS for in-transit and snapshots; so application-layer encryption (encrypting individual sensitive objects) or disk-level encryption is normally used. For Kubernetes secrets, use Kubernetes API server encryption (Option C below) rather than relying on etcd-level encryption.
 
-## Option C — Kubernetes API server Envelope Encryption (recommended to encrypt Kubernetes Secrets at rest)
+## Option C - Kubernetes API server Envelope Encryption (recommended to encrypt Kubernetes Secrets at rest)
 
 This does not encrypt the whole etcd data but encrypts sensitive Kubernetes API resources (Secrets, configmaps, etc) before storing them in etcd. This is typically what people mean by "encrypt etcd data (secrets)". Steps:
 
@@ -357,7 +357,7 @@ sudo chmod 600 /etc/kubernetes/encryption-config.yaml
 
 ### 6.3 Configure kube-apiserver to use it
 
-Edit `/etc/kubernetes/manifests/kube-apiserver.yaml` — add the flag to the kube-apiserver command args:
+Edit `/etc/kubernetes/manifests/kube-apiserver.yaml` - add the flag to the kube-apiserver command args:
 
 ```
 --encryption-provider-config=/etc/kubernetes/encryption-config.yaml
@@ -370,7 +370,7 @@ kubelet will restart the kube-apiserver static pod automatically.
 New secrets will be encrypted from now on. To encrypt existing secrets in etcd, you must:
 
 1. Make sure `--encryption-provider-config` is active and kube-apiserver restarted.
-2. Re-save all secrets (the easiest approach — this forces them to be written back through the API server and be re-encrypted):
+2. Re-save all secrets (the easiest approach - this forces them to be written back through the API server and be re-encrypted):
 
 ```bash
 kubectl get secrets --all-namespaces -o json \
@@ -427,7 +427,7 @@ sudo ETCDCTL_API=3 /usr/bin/etcdctl \
 * For HA, etcd runs as a clustered set across control-plane nodes.
 * Backup: you can snapshot any healthy member but prefer leader (or use `ETCDCTL_API=3` with all endpoints).
 * Upgrade control planes one at a time: take snapshot, upgrade one control-plane, verify cluster health before moving to the next.
-* Restoring HA: usually rebuild one control-plane from snapshot and rejoin the cluster or rebuild cluster from snapshot as a single-member and then re-add members — careful and follow etcd HA protocols.
+* Restoring HA: usually rebuild one control-plane from snapshot and rejoin the cluster or rebuild cluster from snapshot as a single-member and then re-add members - careful and follow etcd HA protocols.
 
 ---
 
@@ -494,7 +494,7 @@ Make executable: `sudo chmod +x /usr/local/bin/etcd-backup.sh`
 
 ## 10.2 Quick restore guide (comments in script)
 
-I won't provide an automatic destructive restore script here — restores require human checks. Use the manual procedure in section 4.3.
+I won't provide an automatic destructive restore script here - restores require human checks. Use the manual procedure in section 4.3.
 
 ---
 
@@ -540,7 +540,7 @@ sudo systemctl restart kubelet
 
 # 12. Final notes, gotchas & recommendations
 
-* If you run an external etcd cluster (not stacked), follow etcd operator or your managed etcd provider docs — backup/restore differs.
+* If you run an external etcd cluster (not stacked), follow etcd operator or your managed etcd provider docs - backup/restore differs.
 * Never expose etcd to the public Internet. Firewall it to only kube-apiserver and trusted admin hosts.
 * Keep etcd snapshots in multiple secure locations. Test restore periodically.
 * Keep encryption provider keys (for kube-apiserver) backed up in a secure KMS or offline vault. Losing the key means you cannot decrypt older secrets.
