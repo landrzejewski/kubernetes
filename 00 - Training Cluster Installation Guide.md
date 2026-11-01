@@ -8,8 +8,8 @@ bcdedit /set hypervisorlaunchtype off
 - Go to File->Tools->Network manager menu
 - Create a new NAT network and name it `kubernetes`
 - Configure the created network
-    - Network address: 192.168.1.0/24
-    - Port forwarding rules:
+  - Network address: 192.168.1.0/24
+  - Port forwarding rules:
 
 | Name   |  Protocol  |  Host IP    | Host Port  |   Guest IP    | Guest Port  |
 |:------:|:----------:|:-----------:|:----------:|:-------------:|:-----------:|
@@ -21,20 +21,20 @@ bcdedit /set hypervisorlaunchtype off
 ## Base machine preparation
 
 - Configure new machine:
-    - Name: Debian
-    - Type/Version: Debian (64-bit)
-    - RAM: 4096 MB
-    - Processor: 2 CPU
-    - Hard disk: 512 GB, dynamically allocated
-    - Network card: NAT network named `kubernetes`
+  - Name: Debian
+  - Type/Version: Debian (64-bit)
+  - RAM: 4096 MB
+  - Processor: 2 CPU
+  - Hard disk: 512 GB, dynamically allocated
+  - Network card: NAT network named `kubernetes`
 - Install Debian system
-    - Root password: k8s
-    - User: k8s
-    - Password: k8s
-    - Hostname: debian
-    - Packages to install:
-        - SSH Server
-        - Basic system utilities
+  - Root password: k8s
+  - User: k8s
+  - Password: k8s
+  - Hostname: debian
+  - Packages to install:
+    - SSH Server
+    - Basic system utilities
 - Disable cd/dvd as package source - remove line starting with `deb cdrom`
 ```bash
 nano /etc/apt/sources.list
@@ -78,8 +78,8 @@ sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
 apt-get update
 apt-get install -y software-properties-common
 
-KUBERNETES_VERSION=v1.34
-CRIO_VERSION=v1.34
+KUBERNETES_VERSION=v1.37
+CRIO_VERSION=v1.37
 
 curl -fsSL https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/deb/Release.key |
     gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
@@ -95,6 +95,7 @@ echo "deb [signed-by=/etc/apt/keyrings/cri-o-apt-keyring.gpg] https://download.o
     
 apt-get update
 apt-get install -y cri-o kubelet kubeadm kubectl
+apt-mark hold cri-o kubelet kubeadm kubectl
 
 systemctl start crio.service    
 systemctl enable crio.service    
@@ -152,9 +153,9 @@ sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
 - Join remaining machines (node1, node2) following the displayed instructions
-- Install network layer
+- Install network layer (Calico https://docs.tigera.io/calico/latest/getting-started/kubernetes/self-managed-onprem/onpremises)
 ```bash
-kubectl apply -f https://projectcalico.docs.tigera.io/manifests/calico.yaml
+kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.33.0/manifests/calico.yaml
 ```
 - Allow root user login on master machine
 ```bash
