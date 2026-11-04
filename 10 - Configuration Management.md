@@ -105,7 +105,7 @@ Network Transmission: All communication between Kubernetes components uses TLS e
 
 Secrets can be consumed using the same patterns as ConfigMaps, but with additional security considerations:
 
-Volume Mounts represent the most secure consumption method for Secrets. Secret data appears as files in the container's filesystem, with the kubelet ensuring these files are backed by tmpfs and never written to persistent storage. The files receive restrictive permissions by default (0644), though these can be further restricted using the `defaultMode` field.
+Volume Mounts represent the most secure consumption method for Secrets. Secret data appears as files in the container's filesystem, with the kubelet ensuring these files are backed by tmpfs and never written to persistent storage. The files receive permissions 0644 by default, which can (and usually should) be restricted using the `defaultMode` field.
 
 Environment Variables work identically to ConfigMaps but require careful consideration. Environment variables may be logged by applications, exposed through process listings, or included in error reports. Use environment variables for Secrets only when the application requires it and you've evaluated the exposure risks.
 
@@ -311,7 +311,7 @@ data:
         server_name example.com;
         
         location / {
-            proxy_pass http://backend:8080;
+            proxy_pass http://127.0.0.1:8080;  # nginx resolves upstream hostnames at startup, so use an address that always resolves
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -327,7 +327,7 @@ data:
         }
         
         location /metrics {
-            proxy_pass http://backend:8080/actuator/prometheus;
+            proxy_pass http://127.0.0.1:8080/actuator/prometheus;
             access_log off;
         }
     }
@@ -716,7 +716,7 @@ metadata:
 spec:
   containers:
   - name: nginx
-    image: nginx:1.24-alpine
+    image: nginx:1.30-alpine
     ports:
     - containerPort: 80
     command: ["/bin/sh"]
@@ -725,15 +725,15 @@ spec:
     - |
       echo "Starting nginx with custom configuration"
       # Verify configuration files are mounted
-      ls -la /etc/nginx/
+      ls -la /etc/nginx/conf.d/
       ls -la /etc/ssl/certs/
       ls -la /etc/ssl/private/
       # Start nginx
       nginx -g 'daemon off;'
     volumeMounts:
-    # Mount only nginx.conf from ConfigMap
+    # Mount only nginx.conf from ConfigMap (it contains a server block, so it goes to conf.d)
     - name: config-volume
-      mountPath: /etc/nginx/nginx.conf
+      mountPath: /etc/nginx/conf.d/default.conf
       subPath: nginx.conf
       readOnly: true
     # Mount TLS certificate
@@ -776,7 +776,7 @@ kubectl wait --for=condition=Ready pod/selective-mount-pod --timeout=60s
 kubectl logs selective-mount-pod
 
 # Verify mounted files
-kubectl exec selective-mount-pod -- ls -la /etc/nginx/
+kubectl exec selective-mount-pod -- ls -la /etc/nginx/conf.d/
 kubectl exec selective-mount-pod -- ls -la /etc/ssl/certs/
 kubectl exec selective-mount-pod -- ls -la /etc/ssl/private/
 ```

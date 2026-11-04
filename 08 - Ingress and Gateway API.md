@@ -22,14 +22,14 @@ Think of the Ingress resource as a set of routing instructions, while the Ingres
 
 ### Installing NGINX Ingress Controller
 
-The NGINX Ingress Controller is the most widely adopted controller. Here's how to install it:
+The NGINX Ingress Controller (ingress-nginx) has been the most widely adopted controller. Note that the Kubernetes ingress-nginx project has been retired: best-effort maintenance ended in March 2026 and the repository is archived, so there will be no further releases or security fixes. It is still used here to demonstrate the Ingress API, but for new deployments use the Gateway API (covered later in this chapter), which is its recommended successor. Here's how to install it:
 
 ```bash
-# For cloud providers (AWS, GCP, Azure)
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.2/deploy/static/provider/cloud/deploy.yaml
+# For cloud providers (AWS, GCP, Azure) or bare metal with MetalLB (LoadBalancer Service)
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.15.1/deploy/static/provider/cloud/deploy.yaml
 
-# For bare metal clusters or local development
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.2/deploy/static/provider/baremetal/deploy.yaml
+# For bare metal clusters or local development without a load balancer (NodePort Service)
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.15.1/deploy/static/provider/baremetal/deploy.yaml
 
 # Verify the controller is running
 kubectl get pods -n ingress-nginx
@@ -298,8 +298,10 @@ spec:
 With this configuration:
 
 - Request to `/app` → Backend receives `/`
-- Request to `/app/page1` → Backend receives `/page1`
-- Request to `/app/api/users` → Backend receives `/api/users`
+- Request to `/app/page1` → Backend also receives `/`
+- Request to `/app/api/users` → Backend also receives `/`
+
+A static `rewrite-target` replaces the whole path. To keep the rest of the path (e.g. `/app/page1` → `/page1`), use capture groups as shown next.
 
 #### URL Rewrite with Capture Groups
 
@@ -346,13 +348,14 @@ This configuration:
 #### Testing URL Rewrites
 
 ```bash
-# Apply the rewrite ingress
+# Apply the rewrite ingresses
 kubectl apply -f url-rewrite-ingress.yaml
+kubectl apply -f capture-rewrite-ingress.yaml
 
 # Test the rewrite
 kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 8080:80
 
-# Original path /app/test gets rewritten to /test
+# Original path /app/test gets rewritten to / (static rewrite-target)
 curl -H "Host: app.local" http://localhost:8080/app/test
 
 # Original path /api/v1/users gets rewritten to /v1/users
@@ -379,7 +382,7 @@ This separation allows infrastructure teams to manage Gateways while application
 | ------------------ | ----------------------------- | --------------------------------------- |
 | API Design         | Single resource               | Multiple role-based resources           |
 | Expressiveness     | Limited, requires annotations | Rich, typed fields                      |
-| Protocol Support   | HTTP/HTTPS only               | HTTP, TCP, UDP, gRPC                    |
+| Protocol Support   | HTTP/HTTPS only               | HTTP, gRPC, TLS, TCP, UDP               |
 | Role Separation    | Mixed responsibilities        | Clear infrastructure/app separation     |
 | Traffic Management | Basic                         | Advanced (weights, header manipulation) |
 | Cross-namespace    | Limited                       | Built-in with ReferenceGrants           |
@@ -392,16 +395,22 @@ Gateway API resources are not included in Kubernetes by default:
 
 ```bash
 # Install Gateway API CRDs
-kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.0/standard-install.yaml
+kubectl apply --server-side -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.7.0/standard-install.yaml
 
 # Verify CRD installation
 kubectl get crd | grep gateway.networking.k8s.io
 
 # Expected output:
+# backendtlspolicies.gateway.networking.k8s.io
 # gatewayclasses.gateway.networking.k8s.io
 # gateways.gateway.networking.k8s.io
+# grpcroutes.gateway.networking.k8s.io
 # httproutes.gateway.networking.k8s.io
+# listenersets.gateway.networking.k8s.io
 # referencegrants.gateway.networking.k8s.io
+# tcproutes.gateway.networking.k8s.io
+# tlsroutes.gateway.networking.k8s.io
+# udproutes.gateway.networking.k8s.io
 ```
 
 ### Step 2: Install a Gateway Controller
@@ -409,15 +418,10 @@ kubectl get crd | grep gateway.networking.k8s.io
 For this example, we'll use NGINX Gateway Fabric:
 
 ```bash
-# Add Helm repository
-helm repo add ngf https://nginxinc.github.io/nginx-gateway-fabric
-helm repo update
-
-# Install NGINX Gateway Fabric
-helm install ngf ngf/nginx-gateway-fabric \
+# Install NGINX Gateway Fabric (the chart is published as an OCI artifact)
+helm install ngf oci://ghcr.io/nginx/charts/nginx-gateway-fabric \
   --create-namespace \
-  --namespace nginx-gateway \
-  --set service.type=NodePort
+  -n nginx-gateway
 
 # Wait for controller to be ready
 kubectl wait --for=condition=available --timeout=60s \
@@ -547,14 +551,18 @@ kubectl describe httproute example-route
 ### Testing Gateway API
 
 ```bash
-# Get the Gateway service NodePort
-GATEWAY_PORT=$(kubectl get svc -n nginx-gateway ngf-nginx-gateway-fabric \
-  -o jsonpath='{.spec.ports[?(@.port==80)].nodePort}')
+# NGINX Gateway Fabric provisions a dedicated data plane for each Gateway:
+# a Deployment and a LoadBalancer Service named <gateway>-nginx
+kubectl get deployment,svc example-gateway-nginx
 
-echo "Gateway is accessible on port: $GATEWAY_PORT"
+# Get the address assigned to the Gateway (from MetalLB in the training cluster)
+GATEWAY_IP=$(kubectl get gateway example-gateway \
+  -o jsonpath='{.status.addresses[0].value}')
+
+echo "Gateway is accessible at: $GATEWAY_IP"
 
 # Test the routing
-curl -H "Host: hello.example.com" http://localhost:$GATEWAY_PORT
+curl -H "Host: hello.example.com" http://$GATEWAY_IP
 ```
 
 ### Path-Based Routing with Gateway API
@@ -626,6 +634,8 @@ spec:
 - Need simple HTTP/HTTPS routing
 - Team is familiar with Ingress patterns
 - Using tools that only support Ingress
+
+If you stay on Ingress, prefer a maintained controller - ingress-nginx is retired, so existing ingress-nginx installations should plan a migration (to Gateway API or another controller).
 
 ### Use Gateway API When:
 

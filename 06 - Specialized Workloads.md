@@ -477,7 +477,7 @@ for i in 0 1 2; do
 done
 
 # Test DNS resolution for pods
-kubectl run -it --rm debug --image=busybox:1.36 --restart=Never -- nslookup distributed-db-0.database-service
+kubectl run -it --rm debug --image=busybox:1.36 --restart=Never -- nslookup distributed-db-0.database-service.default.svc.cluster.local
 
 # Verify data persistence by deleting and recreating a pod
 kubectl exec distributed-db-1 -- sh -c "echo 'Important data' > /data/db/important.txt"
@@ -637,7 +637,7 @@ spec:
             echo "Root Disk Usage: $DISK_USAGE" | tee -a /var/log/monitoring/node-stats.log
             
             # Count running containers
-            CONTAINER_COUNT=$(ls -1 /proc/*/cgroup 2>/dev/null | xargs grep -l docker 2>/dev/null | wc -l)
+            CONTAINER_COUNT=$(ls -1 /proc/*/cgroup 2>/dev/null | xargs grep -lE 'crio|containerd|docker' 2>/dev/null | wc -l)
             echo "Running Containers: $CONTAINER_COUNT" | tee -a /var/log/monitoring/node-stats.log
             
             echo "=======================================================" | tee -a /var/log/monitoring/node-stats.log
@@ -709,7 +709,7 @@ NODE_POD=$(kubectl get pods -l app=node-monitor -o jsonpath='{.items[0].metadata
 kubectl exec $NODE_POD -- tail -20 /var/log/monitoring/node-stats.log
 
 # Update DaemonSet image
-kubectl set image daemonset/node-monitor monitor=busybox:1.36
+kubectl set image daemonset/node-monitor monitor=busybox:1.37
 
 # Monitor rolling update progress
 kubectl rollout status daemonset/node-monitor

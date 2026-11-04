@@ -26,16 +26,16 @@ Without Services, you would need to track every Pod IP address manually and upda
 
 When you create a Service, several components work together to make it functional:
 
-1. The Service Controller watches for Service creation and assigns a ClusterIP from the configured service CIDR range
+1. The API server allocates a ClusterIP from the configured service CIDR range when the Service is created
 2. The Endpoint Controller (or EndpointSlice controller in newer versions) watches for Pods matching the Service's selector and maintains a list of their IP addresses
-3. kube-proxy on each node watches for Service and Endpoint changes and configures the node's networking rules (iptables, IPVS, or userspace proxy) to handle the actual packet forwarding
+3. kube-proxy on each node watches for Service and Endpoint changes and configures the node's networking rules (iptables, nftables or IPVS) to handle the actual packet forwarding
 4. CoreDNS creates DNS records for each Service, enabling name-based service discovery
 
 ### Dynamic Endpoint Management
 
-The Service controller continuously monitors the cluster for Pods that match each Service's selector. As Pods come and go, the controller updates the corresponding EndpointSlices to reflect the current set of available backends. This dynamic discovery mechanism ensures that traffic is always routed only to Pods that are ready to handle requests.
+The EndpointSlice controller continuously monitors the cluster for Pods that match each Service's selector. As Pods come and go, the controller updates the corresponding EndpointSlices to reflect the current set of available backends. This dynamic discovery mechanism ensures that traffic is always routed only to Pods that are ready to handle requests.
 
-The kube-proxy component running on each node watches these EndpointSlices and configures the local networking rules to implement the actual traffic forwarding. By default, kube-proxy uses iptables rules for efficient in-kernel packet processing, though it can also use IPVS for better performance at scale or fall back to userspace proxying. This architecture enables true decoupling between frontend and backend components, allowing them to evolve independently without breaking their network contracts.
+The kube-proxy component running on each node watches these EndpointSlices and configures the local networking rules to implement the actual traffic forwarding. By default, kube-proxy uses iptables rules for efficient in-kernel packet processing, though it can also use nftables (stable since v1.33 and the recommended mode for new clusters) or IPVS (deprecated since v1.35). The old userspace mode was removed in v1.26. This architecture enables true decoupling between frontend and backend components, allowing them to evolve independently without breaking their network contracts.
 
 ## Service Types and Their Use Cases
 
@@ -111,7 +111,7 @@ Headless Services are essential for:
 
 ## EndpointSlices - Modern Endpoint Management
 
-EndpointSlices represent a significant evolution in how Kubernetes manages network endpoints. Introduced in Kubernetes 1.17 and becoming the default in 1.19, they replaced the older Endpoints API to address scalability limitations and provide better support for large clusters.
+EndpointSlices represent a significant evolution in how Kubernetes manages network endpoints. Introduced in Kubernetes 1.16, used by kube-proxy by default since 1.19 and stable since 1.21, they replaced the older Endpoints API (deprecated since 1.33) to address scalability limitations and provide better support for large clusters.
 
 ### Why EndpointSlices?
 
@@ -145,7 +145,7 @@ Network Policies provide a way to control traffic flow at the IP address and por
 
 Network Policies are implemented by the Container Network Interface (CNI) plugin, not by Kubernetes itself. This means:
 
-- You need a CNI plugin that supports Network Policies (Calico, Cilium, Weave Net, etc.)
+- You need a CNI plugin that supports Network Policies (Calico, Cilium, Antrea, etc.)
 - Policies are enforced at the network level, not application level
 - They work by programming iptables or eBPF rules on nodes
 
@@ -184,8 +184,8 @@ Service DNS Records:
 
 Pod DNS Records (if enabled):
 
-- `pod-ip-address.namespace.pod.cluster.local`
-- Useful for StatefulSets with predictable Pod names
+- `pod-ip-address.namespace.pod.cluster.local` (dots in the IP replaced by dashes, e.g. `10-244-1-4.default.pod.cluster.local`)
+- StatefulSet Pods additionally get stable names via their headless Service: `pod-name.service.namespace.svc.cluster.local`
 
 DNS Search Domains: Pods get a resolv.conf with search domains allowing short names:
 
@@ -229,7 +229,7 @@ Cluster (default):
 
 - Traffic can be routed to any node then forwarded to Pods
 - Better load distribution
-- Preserves source IP requires cloud provider support
+- Client source IP is not preserved (traffic is SNATed to the node)
 - Additional network hop possible
 
 Local:
@@ -463,8 +463,8 @@ For LoadBalancer Services in bare-metal clusters, we'll use MetalLB. In cloud en
 MetalLB provides a network load balancer implementation for bare metal Kubernetes clusters using standard routing protocols.
 
 ```bash
-# Install MetalLB v0.15.2
-kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.15.2/config/manifests/metallb-native.yaml
+# Install MetalLB v0.16.1
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.16.1/config/manifests/metallb-native.yaml
 
 # Wait for MetalLB pods to be ready
 kubectl wait --namespace metallb-system \
@@ -493,7 +493,7 @@ spec:
   # Example for 192.168.1.x network: 192.168.1.240-192.168.1.250
   # Example for 10.0.0.x network: 10.0.0.240-10.0.0.250
   # Use IP addresses that your router won't assign via DHCP
-  - 10.10.10.200-10.10.10.250  # CHANGE THIS TO MATCH YOUR NETWORK!
+  - 192.168.1.240-192.168.1.250  # CHANGE THIS TO MATCH YOUR NETWORK!
 ---
 apiVersion: metallb.io/v1beta1
 kind: L2Advertisement
@@ -802,7 +802,7 @@ kubectl create deployment api --image=kong/httpbin:latest -n backend
 kubectl expose deployment api --port=80 --target-port=80 -n backend
 
 # Deploy database with required environment variable
-kubectl create deployment db --image=postgres:13-alpine -n database --env="POSTGRES_PASSWORD=testpass"
+kubectl create deployment db --image=postgres:17-alpine -n database --env="POSTGRES_PASSWORD=testpass"
 kubectl expose deployment db --port=5432 -n database
 
 # Wait for deployments to be ready

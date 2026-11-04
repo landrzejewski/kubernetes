@@ -118,7 +118,7 @@ Appropriate use cases for HostPath are limited and specific:
 - Development and testing on single-node clusters
 - Accessing node-specific resources like `/dev` devices
 - Running system-level monitoring or logging agents
-- Container runtime integration (accessing Docker socket)
+- Container runtime integration (accessing the CRI socket, e.g. CRI-O or containerd)
 
 Production clusters should avoid HostPath volumes except for these specific system-level use cases, preferring PersistentVolumes for application data.
 
@@ -603,7 +603,7 @@ metadata:
 spec:
   containers:
   - name: postgres
-    image: postgres:13-alpine
+    image: postgres:17-alpine
     env:
     - name: POSTGRES_DB
       value: testdb
@@ -693,12 +693,12 @@ metadata:
   name: fast-storage
   annotations:
     storageclass.kubernetes.io/is-default-class: "true"
-provisioner: kubernetes.io/aws-ebs
+provisioner: ebs.csi.aws.com
 parameters:
   type: gp3
   iopsPerGB: "10"
   encrypted: "true"
-  fsType: ext4
+  csi.storage.k8s.io/fstype: ext4
 reclaimPolicy: Delete
 allowVolumeExpansion: true
 volumeBindingMode: WaitForFirstConsumer
@@ -709,11 +709,13 @@ mountOptions:
 
 provisioner: Identifies which volume plugin to use for creating PVs. Different provisioners support different storage backends:
 
-- `kubernetes.io/aws-ebs`: Amazon EBS volumes
-- `kubernetes.io/gce-pd`: Google Compute Engine persistent disks
-- `kubernetes.io/azure-disk`: Azure managed disks
-- `kubernetes.io/cinder`: OpenStack Cinder
-- Custom CSI drivers for specialized storage systems
+- `ebs.csi.aws.com`: Amazon EBS volumes
+- `pd.csi.storage.gke.io`: Google Compute Engine persistent disks
+- `disk.csi.azure.com`: Azure managed disks
+- `cinder.csi.openstack.org`: OpenStack Cinder
+- Custom CSI drivers for specialized storage systems (e.g. `ru.yandex.s3.csi` from csi-s3, used by the course's `minio-sc` StorageClass)
+
+The legacy in-tree provisioners (`kubernetes.io/aws-ebs`, `kubernetes.io/gce-pd`, `kubernetes.io/azure-disk`, `kubernetes.io/cinder`) have been removed from Kubernetes; storage is now provided by CSI drivers.
 
 parameters: Provisioner-specific settings that control storage characteristics. These vary by provisioner but commonly include:
 
@@ -723,7 +725,7 @@ parameters: Provisioner-specific settings that control storage characteristics. 
 - Replication factors
 - Filesystem types
 
-reclaimPolicy: Default reclaim policy for PVs created by this StorageClass. Can be overridden in individual PVCs.
+reclaimPolicy: Reclaim policy (`Delete` by default, or `Retain`) for PVs created by this StorageClass. It cannot be set in a PVC; change it afterwards by patching the PV's `persistentVolumeReclaimPolicy`.
 
 allowVolumeExpansion: Whether PVCs can be resized after creation. Essential for production systems that may need to grow.
 

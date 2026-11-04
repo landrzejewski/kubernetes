@@ -104,7 +104,7 @@ Namespaces are a Linux kernel feature that partitions system resources so differ
 
 7. **Cgroup namespace**: Isolates the view of control groups, hiding the host's cgroup hierarchy from the container.
 
-8. **Time namespace**: Allows containers to have different system time views, useful for testing time-dependent code.
+8. **Time namespace**: Allows containers to have their own offsets for the monotonic and boot-time clocks (not the wall-clock time), mainly useful for checkpoint/restore and migration.
 
 When you start a container, the kernel creates new namespaces for it. The containerized process believes it's running on a dedicated system-it sees only its own processes, network, and filesystem.
 
@@ -120,9 +120,9 @@ Control groups manage and limit resources. They answer critical questions:
 Cgroups work hierarchically. You might limit a group of containers to 4GB total memory, then subdivide that among individual containers. The kernel enforces these limits strictly:
 
 - **Memory limits**: If a container tries to use more memory than allowed, the kernel's Out-Of-Memory (OOM) killer terminates processes within that container to free memory
-- **CPU limits**: The kernel's scheduler ensures a container limited to 0.5 CPUs gets exactly half the CPU time of an unlimited container
+- **CPU limits**: The kernel's scheduler ensures a container limited to 0.5 CPUs gets at most half of one CPU's time (it is throttled once it uses up its quota)
 - **I/O limits**: The kernel can limit read/write speeds to prevent one container from monopolizing disk access
-- **Network limits**: Traffic shaping ensures containers don't exceed bandwidth allocations
+- **Network limits**: cgroups do not cap bandwidth themselves; traffic shaping (e.g. `tc`) is used on top to keep containers within bandwidth allocations
 
 These limits prevent "noisy neighbor" problems where one container consumes all resources, starving others.
 
@@ -193,7 +193,7 @@ Before diving into Docker commands, let's understand what we're working with. Do
 
 ```bash
 # Check Docker version - shows both client and server versions
-docker --version
+docker version
 
 # View detailed Docker system information
 # This shows configuration, storage driver, network details, and more
@@ -217,7 +217,7 @@ Docker uses a client-server model that's important to understand:
 
 2. **Docker Daemon** (dockerd): The background service doing all the work-building images, running containers, managing networks and volumes. It exposes a REST API that the client uses.
 
-3. **Docker Registry**: Storage for images. Docker Hub is the default public registry, but you can use private registries like AWS ECR, Google Container Registry, or self-hosted registries.
+3. **Docker Registry**: Storage for images. Docker Hub is the default public registry, but you can use private registries like AWS ECR, Google Artifact Registry, or self-hosted registries.
 
 When you type a Docker command, the client sends an API request to the daemon, which performs the action and returns results. This architecture allows remote Docker management-your client can control Docker daemons on other machines.
 
@@ -449,7 +449,7 @@ docker inspect interactive-test | head -30
 
 # View specific values using format
 docker inspect --format='{{.State.Status}}' interactive-test
-docker inspect --format='{{.NetworkSettings.IPAddress}}' interactive-test
+docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' interactive-test
 
 # View resource usage
 # Shows CPU, memory, network, and disk I/O
@@ -489,11 +489,13 @@ docker stats --no-stream mem-limited swap-limited cpu-limited cpu-shares
 
 # Test memory limit (this will cause container to be killed)
 # Container tries to allocate 100MB but only has 10MB limit
-docker run --rm --memory="10m" alpine sh -c "dd if=/dev/zero of=/tmp/file bs=1M count=100"
+# (tail buffers its whole input in memory; writing a file with dd would
+# only fill the reclaimable page cache and not trigger the OOM killer)
+docker run --rm --memory="10m" alpine sh -c "head -c 100m /dev/zero | tail"
 # You'll see it gets killed
 
 # Check container status after OOM kill
-docker run -d --name oom-test --memory="10m" alpine sh -c "sleep 2 && dd if=/dev/zero of=/tmp/file bs=1M count=100"
+docker run -d --name oom-test --memory="10m" alpine sh -c "sleep 2 && head -c 100m /dev/zero | tail"
 sleep 5
 docker inspect oom-test --format='{{.State.OOMKilled}}'  # Should show true
 
@@ -545,7 +547,7 @@ docker run -d \
   --name postgres-db \
   -v app-data:/var/lib/postgresql/data \
   -e POSTGRES_PASSWORD=secret \
-  postgres:13-alpine
+  postgres:17-alpine
 
 # Write data to volume
 docker exec postgres-db psql -U postgres -c "CREATE DATABASE testdb;"
@@ -558,7 +560,7 @@ docker run -d \
   --name postgres-db-new \
   -v app-data:/var/lib/postgresql/data \
   -e POSTGRES_PASSWORD=secret \
-  postgres:13-alpine
+  postgres:17-alpine
 
 # Verify data still exists
 docker exec postgres-db-new psql -U postgres -c "\l" | grep testdb
@@ -813,7 +815,7 @@ echo "Access at http://127.0.0.1:8081 (localhost only)"
 # -P publishes all exposed ports to random ports
 docker run -d -P --name web3 nginx:alpine
 docker port web3
-RANDOM_PORT=$(docker port web3 80 | cut -d: -f2)
+RANDOM_PORT=$(docker port web3 80 | head -1 | cut -d: -f2)
 echo "Access at http://localhost:$RANDOM_PORT"
 
 # Multiple port mappings
@@ -876,21 +878,21 @@ if __name__ == "__main__":
 
 # Create requirements file
 # File: requirements.txt
-echo 'flask==2.3.0
-werkzeug==2.3.0' > requirements.txt
+echo 'flask==3.1.3
+werkzeug==3.1.9' > requirements.txt
 
 # Create Dockerfile with detailed comments
 # File: Dockerfile
 echo '# Start from official Python image
 # Using slim variant for smaller size
-FROM python:3.9-slim
+FROM python:3.13-slim
 
 # Set working directory inside container
 # All subsequent commands run from here
 WORKDIR /app
 
 # Copy requirements first (for better layer caching)
-# If requirements don not change, this layer is reused
+# If requirements do not change, this layer is reused
 COPY requirements.txt .
 
 # Install Python dependencies
@@ -911,7 +913,7 @@ ENV APP_ENV=production
 
 # Define health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')" || exit 1
+  CMD python -c "import urllib.request; urllib.request.urlopen(\"http://localhost:5000/health\")" || exit 1
 
 # Run the application
 # CMD is the default command, can be overridden at runtime
@@ -993,7 +995,7 @@ func main() {
 # File: Dockerfile
 echo '# Build stage - contains compiler and build tools
 # This stage is only used for building, not in final image
-FROM golang:1.19-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache git
@@ -1046,7 +1048,7 @@ docker build -t go-server:multi .
 
 # Create single-stage Dockerfile for comparison
 # File: Dockerfile.single
-echo 'FROM golang:1.19-alpine
+echo 'FROM golang:1.25-alpine
 WORKDIR /app
 COPY main.go .
 RUN go build -o server main.go
@@ -1095,7 +1097,7 @@ echo 'requests==2.31.0' > requirements.txt
 
 # Unoptimized Dockerfile - common mistakes
 # File: Dockerfile.unoptimized
-echo 'FROM python:3.9
+echo 'FROM python:3.13
 
 # Mistake 1: copy everything first, so ANY code change
 # invalidates the cache for the expensive install below
@@ -1112,7 +1114,7 @@ CMD ["python", "app.py"]' > Dockerfile.unoptimized
 # Optimized Dockerfile - best practices applied
 # File: Dockerfile.optimized
 echo '# 1. Use a minimal base image (-slim instead of the full image)
-FROM python:3.9-slim
+FROM python:3.13-slim
 
 WORKDIR /app
 
@@ -1205,7 +1207,7 @@ server.listen(port, () => {
 # Dockerfile with build arguments
 # File: Dockerfile
 echo '# Build arguments - available during build only
-ARG NODE_VERSION=18
+ARG NODE_VERSION=24
 ARG BUILD_DATE
 ARG APP_VERSION=1.0.0
 
@@ -1243,7 +1245,7 @@ docker build -t app:default .
 
 # Build with custom arguments
 docker build \
-  --build-arg NODE_VERSION=16 \
+  --build-arg NODE_VERSION=22 \
   --build-arg APP_VERSION=2.0.0 \
   --build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
   -t app:custom .
@@ -1330,7 +1332,7 @@ server.listen(3000, () => {
 
 # Dockerfile with health check
 # File: Dockerfile
-echo 'FROM node:18-alpine
+echo 'FROM node:24-alpine
 
 # Install curl for health checks
 RUN apk add --no-cache curl
@@ -1464,13 +1466,16 @@ if __name__ == "__main__":
 
 # Create requirements
 # File: requirements.txt
-echo 'flask==2.3.0
-redis==4.5.0
-werkzeug==2.3.0' > requirements.txt
+echo 'flask==3.1.3
+redis==6.4.0
+werkzeug==3.1.9' > requirements.txt
 
 # Create Dockerfile
 # File: Dockerfile
-echo 'FROM python:3.9-slim
+echo 'FROM python:3.13-slim
+
+# curl is needed by the Compose health check (slim images do not include it)
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -1578,6 +1583,8 @@ docker compose logs web
 docker compose exec redis redis-cli GET counter
 
 # Scale the web service (create multiple instances)
+# Note: with the fixed host port mapping "5000:5000" the extra replicas cannot
+# bind port 5000 - use a range ("5000-5002:5000") or no host port to scale
 docker compose up -d --scale web=3
 
 # View scaled services
@@ -1632,7 +1639,7 @@ server.listen(port, () => {
 
 # Insecure Dockerfile (runs as root)
 # File: Dockerfile.insecure
-echo 'FROM node:18-alpine
+echo 'FROM node:24-alpine
 
 WORKDIR /app
 COPY app.js .
@@ -1642,7 +1649,7 @@ CMD ["node", "app.js"]' > Dockerfile.insecure
 
 # Secure Dockerfile (runs as non-root)
 # File: Dockerfile.secure
-echo 'FROM node:18-alpine
+echo 'FROM node:24-alpine
 
 # Create non-root user and group
 # Using specific UID/GID for consistency
@@ -1767,7 +1774,7 @@ temp/
 
 # Create Dockerfile
 # File: Dockerfile
-echo 'FROM node:18-alpine
+echo 'FROM node:24-alpine
 
 WORKDIR /app
 
@@ -1855,7 +1862,7 @@ docker run --rm leak:copy ls /tmp/token.txt 2>&1 || echo "Not in final layer..."
 echo "=== Secret still present in an earlier layer ==="
 docker save leak:copy -o leak.tar
 tar -xf leak.tar -C extracted 2>/dev/null || (mkdir extracted && tar -xf leak.tar -C extracted)
-find extracted -name "*.tar" -exec tar -xOf {} 2>/dev/null \; | grep -a "super-secret-token" && \
+find extracted -type f -exec tar -xOf {} 2>/dev/null \; | grep -a "super-secret-token" && \
   echo "Recovered the secret from image layers (BAD!)" || echo "(layer scan)"
 
 # === The RIGHT way 1: multi-stage build ===
@@ -2086,7 +2093,7 @@ docker pull <image-name>  # Pull if missing
 # 3. Invalid command or entrypoint
 docker inspect <image> | grep -A 5 -E "Cmd|Entrypoint"
 # Solution: Override with correct command
-docker run <image> /bin/sh  # Override entrypoint
+docker run <image> /bin/sh  # Override the command (CMD); use --entrypoint to override ENTRYPOINT
 
 # === Permission denied errors ===
 # File ownership issues
@@ -2119,7 +2126,7 @@ docker container prune  # Remove stopped containers
 docker image prune     # Remove unused images
 docker volume prune    # Remove unused volumes
 docker network prune   # Remove unused networks
-docker system prune -a # Remove everything unused
+docker system prune -a # Remove everything unused (except volumes)
 
 # === Container exits immediately ===
 # Check exit code

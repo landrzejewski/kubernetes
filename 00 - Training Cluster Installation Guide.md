@@ -76,7 +76,7 @@ sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
 - Install Kubernetes tools and CRI-O https://github.com/cri-o/packaging?tab=readme-ov-file
 ```bash
 apt-get update
-apt-get install -y software-properties-common
+apt-get install -y curl gpg
 
 KUBERNETES_VERSION=v1.37
 CRIO_VERSION=v1.37
@@ -141,7 +141,7 @@ sudo nano /etc/hosts
 - Clone master machine twice and set names and IP addresses for node1 and node2
 - Initialize cluster on master machine
 ```bash
-sudo kubeadm init --control-plane-endpoint=master
+sudo kubeadm init --control-plane-endpoint=master --pod-network-cidr=172.16.0.0/16
 ```
 ```bash
 mkdir -p $HOME/.kube
@@ -187,5 +187,5 @@ echo export KUBECONFIG=~/.kube/local >> ~/.bashrc
 echo "source <(kubectl completion bash)" >> ~/.bashrc
 ```
 ```bash
-source .bash_profile
+source ~/.bashrc
 ```

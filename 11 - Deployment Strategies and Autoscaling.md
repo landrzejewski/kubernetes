@@ -48,7 +48,7 @@ spec:
     spec:
       containers:
       - name: app
-        image: nginxdemos/hello:0.2
+        image: nginxdemos/hello:0.2-plain-text
         ports:
         - containerPort: 80
         env:
@@ -90,7 +90,7 @@ kubectl get deployments -l version=blue
 kubectl get pods -l version=blue
 
 # Check Service endpoints to confirm it's pointing to blue pods
-kubectl get endpoints app-service
+kubectl get endpointslices -l kubernetes.io/service-name=app-service
 
 # Test the blue version using a temporary pod
 kubectl run test-blue --image=curlimages/curl:7.85.0 --rm -it --restart=Never -- \
@@ -122,7 +122,7 @@ spec:
     spec:
       containers:
       - name: app
-        image: nginxdemos/hello:0.3
+        image: nginxdemos/hello:0.3-plain-text
         ports:
         - containerPort: 80
         env:
@@ -160,7 +160,7 @@ kubectl patch service app-service -p '{"spec":{"selector":{"version":"green"}}}'
 kubectl get service app-service -o jsonpath='{.spec.selector}' | jq .
 
 # Check the new endpoints
-kubectl get endpoints app-service
+kubectl get endpointslices -l kubernetes.io/service-name=app-service
 
 # Test that traffic now goes to green version
 kubectl run test-green --image=curlimages/curl:7.85.0 --rm -it --restart=Never -- \
@@ -181,7 +181,7 @@ echo "Current active version: $(kubectl get service app-service -o jsonpath='{.s
 
 # Test to confirm traffic is back on blue
 kubectl run test-rollback --image=curlimages/curl:7.85.0 --rm -it --restart=Never -- \
-  curl -s http://app-service/ | grep VERSION
+  curl -s http://app-service/ | grep "Server name"
 
 # After confirming green works correctly, clean up old blue deployment
 # kubectl delete deployment app-blue
@@ -189,11 +189,13 @@ kubectl run test-rollback --image=curlimages/curl:7.85.0 --rm -it --restart=Neve
 
 ### Workshop: Ingress-based Blue/Green
 
-For production environments with HTTP/HTTPS traffic, Ingress-based Blue/Green provides better traffic management. This approach requires an Ingress controller. If you don't have one installed, you can use NGINX Ingress Controller:
+For production environments with HTTP/HTTPS traffic, Ingress-based Blue/Green provides better traffic management. This approach requires an Ingress controller. If you don't have one installed, you can use NGINX Ingress Controller.
+
+> Note: the community ingress-nginx project was retired (maintenance ended in March 2026) and receives no further fixes. The examples below use its last release (and its `nginx.ingress.kubernetes.io/*` annotations), but for new setups prefer the Gateway API (e.g. NGINX Gateway Fabric, see chapter 08), where blue/green and canary are expressed with weighted `backendRefs` in an `HTTPRoute`.
 
 ```bash
 # Install NGINX Ingress Controller (if not already installed)
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.1/deploy/static/provider/cloud/deploy.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.15.1/deploy/static/provider/cloud/deploy.yaml
 
 # Wait for the controller to be ready
 kubectl wait --namespace ingress-nginx \
@@ -327,7 +329,7 @@ spec:
     spec:
       containers:
       - name: app
-        image: nginxdemos/hello:0.2
+        image: nginxdemos/hello:0.2-plain-text
         ports:
         - containerPort: 80
         env:
@@ -362,7 +364,7 @@ spec:
     spec:
       containers:
       - name: app
-        image: nginxdemos/hello:0.3
+        image: nginxdemos/hello:0.3-plain-text
         ports:
         - containerPort: 80
         env:
@@ -406,9 +408,9 @@ echo "Canary pods: $(kubectl get pods -l track=canary --no-headers | wc -l)"
 
 # Test traffic distribution (should see ~90% stable, ~10% canary)
 kubectl run canary-test --image=curlimages/curl:7.85.0 --rm -it --restart=Never -- \
-  sh -c 'for i in $(seq 1 100); do curl -s http://app-canary-service/ | grep VERSION | cut -d'"' -f4; done | sort | uniq -c'
+  sh -c 'for i in $(seq 1 100); do curl -s http://app-canary-service/ | grep "Server name" | grep -o "app-[a-z]*"; done | sort | uniq -c'
 
-# The output should show approximately 90 requests to stable-1.0 and 10 to canary-2.0
+# The output should show approximately 90 requests to app-stable and 10 to app-canary pods
 ```
 
 Progressive Canary rollout:
@@ -423,7 +425,7 @@ kubectl get deployments -l app=myapp
 
 # Test new distribution (should see ~75% stable, ~25% canary)
 kubectl run canary-test-25 --image=curlimages/curl:7.85.0 --rm -it --restart=Never -- \
-  sh -c 'for i in $(seq 1 100); do curl -s http://app-canary-service/ | grep VERSION | cut -d'"' -f4; done | sort | uniq -c'
+  sh -c 'for i in $(seq 1 100); do curl -s http://app-canary-service/ | grep "Server name" | grep -o "app-[a-z]*"; done | sort | uniq -c'
 
 # Continue to 50/50 split
 kubectl scale deployment app-canary --replicas=5
@@ -431,7 +433,7 @@ kubectl scale deployment app-stable --replicas=5
 
 # Test 50/50 distribution
 kubectl run canary-test-50 --image=curlimages/curl:7.85.0 --rm -it --restart=Never -- \
-  sh -c 'for i in $(seq 1 100); do curl -s http://app-canary-service/ | grep VERSION | cut -d'"' -f4; done | sort | uniq -c'
+  sh -c 'for i in $(seq 1 100); do curl -s http://app-canary-service/ | grep "Server name" | grep -o "app-[a-z]*"; done | sort | uniq -c'
 
 # Complete the canary rollout (100% to new version)
 kubectl scale deployment app-stable --replicas=0
@@ -528,7 +530,7 @@ kubectl port-forward -n ingress-nginx service/ingress-nginx-controller 8080:80 &
 
 # Test traffic distribution (should see ~10% canary)
 for i in {1..100}; do 
-  curl -s -H "Host: myapp.local" http://localhost:8080/ | grep VERSION | cut -d'"' -f4
+  curl -s -H "Host: myapp.local" http://localhost:8080/ | grep "Server name" | grep -o "app-[a-z]*"
 done | sort | uniq -c
 
 # Increase canary traffic to 25%
@@ -537,7 +539,7 @@ kubectl annotate ingress app-canary-ingress \
 
 # Test new distribution
 for i in {1..100}; do 
-  curl -s -H "Host: myapp.local" http://localhost:8080/ | grep VERSION | cut -d'"' -f4
+  curl -s -H "Host: myapp.local" http://localhost:8080/ | grep "Server name" | grep -o "app-[a-z]*"
 done | sort | uniq -c
 
 # Progress to 50%
@@ -585,20 +587,20 @@ Test header-based routing:
 kubectl apply -f header-based-canary.yaml
 
 # Normal request goes to stable
-curl -H "Host: myapp.local" http://localhost:8080/ | grep VERSION
+curl -H "Host: myapp.local" http://localhost:8080/ | grep "Server name"
 
 # Request with canary header goes to canary version
-curl -H "Host: myapp.local" -H "X-Canary: enabled" http://localhost:8080/ | grep VERSION
+curl -H "Host: myapp.local" -H "X-Canary: enabled" http://localhost:8080/ | grep "Server name"
 
 # Test multiple requests to verify routing
 echo "Testing without header (should be stable):"
 for i in {1..5}; do
-  curl -s -H "Host: myapp.local" http://localhost:8080/ | grep VERSION | cut -d'"' -f4
+  curl -s -H "Host: myapp.local" http://localhost:8080/ | grep "Server name" | grep -o "app-[a-z]*"
 done
 
 echo "Testing with header (should be canary):"
 for i in {1..5}; do
-  curl -s -H "Host: myapp.local" -H "X-Canary: enabled" http://localhost:8080/ | grep VERSION | cut -d'"' -f4
+  curl -s -H "Host: myapp.local" -H "X-Canary: enabled" http://localhost:8080/ | grep "Server name" | grep -o "app-[a-z]*"
 done
 ```
 
@@ -635,14 +637,14 @@ Test cookie-based routing:
 kubectl apply -f cookie-based-canary.yaml
 
 # Request without cookie (goes to stable)
-curl -H "Host: myapp.local" http://localhost:8080/ | grep VERSION
+curl -H "Host: myapp.local" http://localhost:8080/ | grep "Server name"
 
 # Request with cookie (goes to canary)
-curl -H "Host: myapp.local" --cookie "canary-user=always" http://localhost:8080/ | grep VERSION
+curl -H "Host: myapp.local" --cookie "canary-user=always" http://localhost:8080/ | grep "Server name"
 
 # Simulate a browser session with persistent cookie
 curl -c cookies.txt -H "Host: myapp.local" --cookie "canary-user=always" http://localhost:8080/
-curl -b cookies.txt -H "Host: myapp.local" http://localhost:8080/ | grep VERSION
+curl -b cookies.txt -H "Host: myapp.local" http://localhost:8080/ | grep "Server name"
 ```
 
 ## Kubernetes Autoscaling Fundamentals
@@ -970,7 +972,7 @@ spec:
   
   containers:
   - name: gpu-app
-    image: nvidia/cuda:11.0-base
+    image: busybox:1.36  # stand-in for a real GPU image
     command: ["sleep", "3600"]
     resources:
       requests:
@@ -1156,7 +1158,8 @@ Deploy and test the complete HPA setup:
 
 ```bash
 # First, ensure metrics-server is installed and working
-kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.6.4/components.yaml
+# (the course manifest k8s/pod-autoscaler/metrics-server.yml already contains --kubelet-insecure-tls)
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.9.1/components.yaml
 
 # For local clusters, patch metrics-server for insecure TLS
 kubectl patch deployment metrics-server -n kube-system --type='json' \
@@ -1238,7 +1241,7 @@ spec:
     spec:
       containers:
       - name: busybox
-        image: busybox:1.35
+        image: busybox:1.36
         command: ["/bin/sh"]
         args: ["/scripts/load.sh"]
         volumeMounts:
@@ -1329,7 +1332,9 @@ spec:
     kind: Deployment
     name: vpa-demo
   updatePolicy:
-    updateMode: "Auto"  # Can be "Off", "Initial", or "Auto"
+    # "Off", "Initial", "Recreate", "InPlaceOrRecreate" (uses in-place Pod resize, GA since Kubernetes 1.35)
+    # or "InPlace"; "Auto" is deprecated and behaves like "Recreate"
+    updateMode: "Recreate"
   resourcePolicy:
     containerPolicies:
     - containerName: app
@@ -1354,7 +1359,7 @@ Pod priority enables sophisticated resource management in resource-constrained c
 apiVersion: scheduling.k8s.io/v1
 kind: PriorityClass
 metadata:
-  name: system-critical
+  name: platform-critical  # names starting with "system-" are reserved
 value: 2000
 globalDefault: false
 description: "Critical system components"
@@ -1452,17 +1457,16 @@ kubectl get priorityclasses
 kubectl top nodes
 
 # Create low-priority pods that consume resources
+# (kubectl run no longer has --requests/--limits, so resources are set via --overrides)
 for i in {1..10}; do
-  kubectl run batch-pod-$i --image=busybox \
-    --overrides='{"spec":{"priorityClassName":"batch"}}' \
-    --requests='cpu=200m,memory=256Mi' \
+  kubectl run batch-pod-$i --image=busybox --override-type=strategic \
+    --overrides='{"spec":{"priorityClassName":"batch","containers":[{"name":"batch-pod-'$i'","resources":{"requests":{"cpu":"200m","memory":"256Mi"}}}]}}' \
     -- sleep 3600
 done
 
 # Now create a high-priority pod that needs resources
-kubectl run critical-pod --image=nginx \
-  --overrides='{"spec":{"priorityClassName":"production-high"}}' \
-  --requests='cpu=500m,memory=512Mi'
+kubectl run critical-pod --image=nginx --override-type=strategic \
+  --overrides='{"spec":{"priorityClassName":"production-high","containers":[{"name":"critical-pod","resources":{"requests":{"cpu":"500m","memory":"512Mi"}}}]}}'
 
 # Watch preemption happen
 kubectl get events --sort-by='.lastTimestamp' | grep Preempted

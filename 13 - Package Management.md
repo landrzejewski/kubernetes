@@ -47,7 +47,7 @@ Templates and Values
 Templates are Kubernetes manifest files with Go template directives. These directives allow dynamic content generation based on values provided during installation. Values files contain the configuration parameters that customize the templates for different deployments.
 
 Repositories  
-Chart repositories are HTTP servers that house collections of charts. Public repositories like Artifact Hub provide thousands of ready-to-use charts for common applications. Organizations often maintain private repositories for internal applications.
+Chart repositories are HTTP servers that house collections of charts. Charts are also commonly distributed as OCI artifacts in container registries (for example `oci://ghcr.io/nginx/charts/nginx-gateway-fabric`). Artifact Hub (artifacthub.io) indexes thousands of ready-to-use charts for common applications. Organizations often maintain private repositories for internal applications.
 
 ### Benefits of Using Helm
 
@@ -85,7 +85,7 @@ Helm installation varies by operating system. Choose the method that matches you
 
 ```bash
 # Universal installation script (works on Linux and macOS)
-curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4
 chmod 700 get_helm.sh
 ./get_helm.sh
 
@@ -95,10 +95,17 @@ brew install helm
 # Windows using Chocolatey
 choco install kubernetes-helm
 
-# Ubuntu/Debian using apt
-curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
-sudo apt-get install apt-transport-https --yes
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+# Ubuntu/Debian using apt (community repository hosted by Buildkite;
+# see https://helm.sh/docs/intro/install/ for the key fingerprint check)
+sudo apt-get install curl gpg --yes
+curl -fsSL https://packages.buildkite.com/helm-linux/helm-debian/gpgkey | sudo tee /etc/apt/keyrings/helm.asc > /dev/null
+sudo tee /etc/apt/sources.list.d/helm-stable-debian.sources > /dev/null <<EOF
+Types: deb
+URIs: https://packages.buildkite.com/helm-linux/helm-debian/any/
+Suites: any
+Components: main
+Signed-By: /etc/apt/keyrings/helm.asc
+EOF
 sudo apt-get update
 sudo apt-get install helm
 
@@ -106,21 +113,24 @@ sudo apt-get install helm
 helm version --short
 ```
 
-Expected output should show version 3.x.x. Helm 3 removed the server-side Tiller component, making it more secure and easier to use.
+Expected output should show version v4.x.x (the training cluster uses v4.3.1). Like Helm 3, Helm 4 has no server-side component (Tiller was removed in Helm 3) - the CLI talks directly to the Kubernetes API using your kubeconfig.
 
 ### Working with Helm Repositories
 
 Repositories are collections of charts. Let's add some popular repositories and explore available charts:
 
 ```bash
-# Add the official Bitnami repository (high-quality, production-ready charts)
+# Add the Bitnami repository
+# Note: since August 2025 Bitnami no longer updates its free charts (they stay available, frozen,
+# also as OCI artifacts in oci://registry-1.docker.io/bitnamicharts). The free container images
+# are limited to "latest" tags of a subset of apps; older version tags moved to docker.io/bitnamilegacy.
+# Fine for this workshop, not for production.
 helm repo add bitnami https://charts.bitnami.com/bitnami
 
 # Add other useful repositories
-helm repo add stable https://charts.helm.sh/stable
+# (the old "stable" repo is archived and the ingress-nginx project is retired - don't use them)
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo add grafana https://grafana.github.io/helm-charts
-helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 
 # Update your local repository cache
 helm repo update
@@ -174,14 +184,16 @@ replicaCount: 2
 image:
   registry: docker.io
   repository: bitnami/nginx
-  tag: 1.25.3-debian-11-r0
+  tag: latest   # versioned tags are no longer published in the free bitnami/ repository
   pullPolicy: IfNotPresent
 
 # Service configuration
 service:
   type: NodePort
-  port: 80
-  nodePort: 30080
+  ports:
+    http: 80
+  nodePorts:
+    http: 30080
 
 # Resource limits and requests
 resources:
@@ -218,10 +230,10 @@ kubectl create namespace web-apps
 helm install -n web-apps namespaced-nginx bitnami/nginx
 
 # Install with a specific version
-helm install versioned-nginx bitnami/nginx --version 13.2.34
+helm install versioned-nginx bitnami/nginx --version 25.2.12
 
 # Perform a dry run to see what would be installed
-helm install test-nginx bitnami/nginx --dry-run --debug
+helm install test-nginx bitnami/nginx --dry-run=client --debug
 ```
 
 ### Managing Releases
@@ -257,14 +269,14 @@ EOF
 
 helm upgrade my-web-server bitnami/nginx -f upgrade-values.yaml
 
-# Roll back to a previous revision
-helm rollback my-web-server 1
+# Roll back to the previous revision (omit the revision number)
+helm rollback my-web-server
 
 # Roll back to a specific revision
 helm rollback my-web-server 2
 
 # Uninstall a release
-helm uninstall my-web-server
+helm uninstall custom-nginx
 
 # Uninstall and keep history
 helm uninstall my-web-server --keep-history
@@ -321,8 +333,8 @@ maintainers:
     url: https://example.com
 dependencies:
   - name: redis
-    version: 17.x.x
-    repository: https://charts.bitnami.com/bitnami
+    version: 28.x.x
+    repository: oci://registry-1.docker.io/bitnamicharts
     condition: redis.enabled
 annotations:
   category: WebApplication
@@ -348,7 +360,7 @@ replicaCount: 2
 image:
   registry: docker.io
   repository: nginx
-  tag: "1.25-alpine"
+  tag: "1.30-alpine"
   pullPolicy: IfNotPresent
   pullSecrets: []
 
@@ -357,7 +369,7 @@ serviceAccount:
   create: true
   annotations: {}
   name: ""
-  automountServiceAccountToken: true
+  automount: true
 
 # Pod security context
 podSecurityContext:
@@ -399,6 +411,21 @@ ingress:
     - secretName: webapp-tls
       hosts:
         - webapp.example.com
+
+# Gateway API HTTPRoute (used by templates/httproute.yaml generated by helm create)
+httpRoute:
+  enabled: false
+  annotations: {}
+  parentRefs:
+  - name: gateway
+    sectionName: http
+  hostnames:
+  - webapp.example.com
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
 
 # Resource limits and requests
 resources:
@@ -572,15 +599,17 @@ spec:
             - name: {{ .name }}
               value: {{ .value | quote }}
             {{- end }}
-          {{- if .Values.persistence.enabled }}
+          {{- if or .Values.persistence.enabled .Values.configMap.enabled }}
           volumeMounts:
+            {{- if .Values.persistence.enabled }}
             - name: data
               mountPath: {{ .Values.persistence.mountPath }}
-          {{- end }}
-          {{- if .Values.configMap.enabled }}
+            {{- end }}
+            {{- if .Values.configMap.enabled }}
             - name: config
               mountPath: /etc/config
               readOnly: true
+            {{- end }}
           {{- end }}
       {{- if or .Values.persistence.enabled .Values.configMap.enabled }}
       volumes:
@@ -773,9 +802,27 @@ data:
 {{- end }}
 ```
 
+```yaml
+# webapp-chart/templates/secret.yaml (referenced by the checksum/secret annotation)
+{{- if .Values.secret.enabled }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "webapp-chart.fullname" . }}
+  labels:
+    {{- include "webapp-chart.labels" . | nindent 4 }}
+type: Opaque
+stringData:
+  {{- toYaml .Values.secret.data | nindent 2 }}
+{{- end }}
+```
+
 ### Testing and Packaging Charts
 
 ```bash
+# Download declared dependencies (redis) into webapp-chart/charts/ - required even if redis.enabled=false
+helm dependency update webapp-chart
+
 # Validate chart syntax and structure
 helm lint webapp-chart
 
@@ -789,7 +836,7 @@ helm template test-release webapp-chart --set replicaCount=5
 helm template test-release webapp-chart --debug
 
 # Perform a dry run installation
-helm install test-release webapp-chart --dry-run --debug
+helm install test-release webapp-chart --dry-run=client --debug
 
 # Install the chart
 helm install my-webapp webapp-chart
@@ -901,7 +948,7 @@ spec:
     spec:
       containers:
       - name: webapp
-        image: nginx:1.25-alpine
+        image: nginx:1.30-alpine
         ports:
         - name: http
           containerPort: 80
@@ -1036,10 +1083,12 @@ resources:
 - configmap.yaml
 - secret.yaml
 
-commonLabels:
-  app.kubernetes.io/name: webapp
-  app.kubernetes.io/component: application
-  app.kubernetes.io/managed-by: kustomize
+labels:  # replaces the deprecated commonLabels field
+- includeSelectors: true
+  pairs:
+    app.kubernetes.io/name: webapp
+    app.kubernetes.io/component: application
+    app.kubernetes.io/managed-by: kustomize
 
 commonAnnotations:
   version: "1.0.0"
@@ -1064,9 +1113,11 @@ resources:
 
 namePrefix: dev-
 
-commonLabels:
-  environment: development
-  tier: frontend
+labels:
+- includeSelectors: true
+  pairs:
+    environment: development
+    tier: frontend
 
 commonAnnotations:
   environment: "development"
@@ -1078,7 +1129,7 @@ replicas:
 
 images:
 - name: nginx
-  newTag: 1.25-alpine
+  newTag: 1.30-alpine
 
 configMapGenerator:
 - name: webapp-config
@@ -1118,9 +1169,8 @@ patches:
       value:
         name: DEBUG
         value: "true"
-
-patchesStrategicMerge:
-- deployment-patch.yaml
+# Strategic merge patch from a file (replaces the deprecated patchesStrategicMerge field)
+- path: deployment-patch.yaml
 ```
 
 ```yaml
@@ -1161,9 +1211,11 @@ resources:
 
 namePrefix: staging-
 
-commonLabels:
-  environment: staging
-  tier: frontend
+labels:
+- includeSelectors: true
+  pairs:
+    environment: staging
+    tier: frontend
 
 replicas:
 - name: webapp
@@ -1171,7 +1223,7 @@ replicas:
 
 images:
 - name: nginx
-  newTag: 1.25-alpine
+  newTag: 1.30-alpine
 
 configMapGenerator:
 - name: webapp-config
@@ -1206,9 +1258,7 @@ patches:
     - op: replace
       path: /spec/template/spec/containers/0/resources/limits/memory
       value: "256Mi"
-
-patchesStrategicMerge:
-- service-patch.yaml
+- path: service-patch.yaml
 ```
 
 ```yaml
@@ -1271,10 +1321,12 @@ resources:
 
 namePrefix: prod-
 
-commonLabels:
-  environment: production
-  tier: frontend
-  criticality: high
+labels:
+- includeSelectors: true
+  pairs:
+    environment: production
+    tier: frontend
+    criticality: high
 
 replicas:
 - name: webapp
@@ -1282,8 +1334,8 @@ replicas:
 
 images:
 - name: nginx
-  newTag: 1.25-alpine
-  digest: sha256:abcdef1234567890  # Pin to specific digest for production
+  newTag: 1.30-alpine
+  # digest: sha256:<real-image-digest>  # Pin to a specific digest for production (overrides newTag)
 
 configMapGenerator:
 - name: webapp-config
@@ -1386,7 +1438,7 @@ metadata:
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/limit-rps: "100"
 spec:
   ingressClassName: nginx
   tls:

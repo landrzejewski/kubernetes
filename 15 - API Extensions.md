@@ -106,7 +106,7 @@ cat <<EOF > pod.json
     "containers": [
       {
         "name": "nginx",
-        "image": "nginx:1.20",
+        "image": "nginx:1.30",
         "ports": [{"containerPort": 80}]
       }
     ]
@@ -207,6 +207,8 @@ spec:
                 type: integer
               readyReplicas:
                 type: integer
+              labelSelector:  # read by the scale subresource (labelSelectorPath)
+                type: string
     subresources:
       status: {}  # Enables status subresource
       scale:      # Enables kubectl scale command
@@ -252,7 +254,7 @@ metadata:
   name: my-webapp
   namespace: default
 spec:
-  image: nginx:1.20
+  image: nginx:1.30
   replicas: 3
   port: 80
   env:
@@ -443,8 +445,8 @@ EOF
 ### Basic Controller Logic
 
 ```bash
-# Create simple-controller.sh
 #!/bin/bash
+# Save as simple-controller.sh
 
 NAMESPACE=${NAMESPACE:-default}
 CRD_GROUP="example.com"
@@ -514,8 +516,8 @@ EOF
 # Function to update webapp status
 update_status() {
     local webapp_name=$1
-    local ready_replicas=$2
-    local total_replicas=$3
+    local ready_replicas=${2:-0}   # jsonpath returns an empty string while no replica is ready
+    local total_replicas=${3:-0}
     
     local ready_status="false"
     if [ "$ready_replicas" = "$total_replicas" ] && [ "$ready_replicas" != "0" ]; then
@@ -616,7 +618,7 @@ kind: WebApp
 metadata:
   name: test-webapp
 spec:
-  image: nginx:1.20
+  image: nginx:1.30
   replicas: 2
   port: 80
 EOF
@@ -634,7 +636,7 @@ kubectl patch webapp test-webapp --type='merge' -p '{"spec":{"replicas":3}}'
 kubectl get webapp test-webapp -o yaml | grep -A 10 status:
 
 # Test image updates
-kubectl patch webapp test-webapp --type='merge' -p '{"spec":{"image":"nginx:1.21"}}'
+kubectl patch webapp test-webapp --type='merge' -p '{"spec":{"image":"nginx:1.31"}}'
 
 # Clean up
 kubectl delete webapp test-webapp

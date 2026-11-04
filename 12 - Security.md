@@ -28,7 +28,7 @@ ServiceAccounts provide identity for processes running in pods, enabling them to
 Every ServiceAccount consists of several components:
 
 - A Kubernetes API object that defines the account
-- An automatically generated token for API authentication
+- Short-lived tokens for API authentication, issued via the TokenRequest API and projected into Pods (since v1.24 no long-lived token Secret is generated automatically)
 - Optionally, image pull secrets for accessing private registries
 - RBAC bindings that grant permissions
 
@@ -76,7 +76,8 @@ Creating Workloads: The ability to create pods, deployments, or other workloads 
 
 Modifying RBAC: The ability to create or modify roles and bindings allows subjects to grant themselves additional permissions.
 
-Impersonation: The impersonate verb allows subjects to perform actions as other users or ServiceAccounts
+Impersonation: The impersonate verb allows subjects to perform actions as other users or ServiceAccounts.
+
 ## Practical Workshop Exercises
 
 ### Workshop: ServiceAccount Management
@@ -108,7 +109,7 @@ metadata:
     purpose: "workshop-demo"
 EOF
 
-# Create a long-lived token for the ServiceAccount
+# Create a long-lived token for the ServiceAccount (legacy approach - prefer short-lived tokens from 'kubectl create token')
 cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Secret
@@ -265,7 +266,10 @@ metadata:
     rbac.authorization.k8s.io/aggregate-to-monitoring: "true"
 rules:
 - apiGroups: [""]
-  resources: ["services/endpoints"]
+  resources: ["services"]
+  verbs: ["get", "list"]
+- apiGroups: ["discovery.k8s.io"]
+  resources: ["endpointslices"]
   verbs: ["get", "list"]
 EOF
 
@@ -412,11 +416,13 @@ kubectl config get-contexts
 #### Step 6: Test Access
 
 ```bash
+# Remember the admin context before switching
+ADMIN_CONTEXT=$(kubectl config current-context)
+
 kubectl config use-context jane-context
 kubectl get pods  # should fail
 
 # Return to admin
-ADMIN_CONTEXT=$(kubectl config view --minify -o jsonpath='{.current-context}')
 kubectl config use-context "$ADMIN_CONTEXT"
 
 # Give jane access to pods
@@ -434,7 +440,7 @@ rules:
 - apiGroups: [""]
   resources: ["pods/log"]
   verbs: ["get", "list"]
-EOF 
+EOF
 
 cat <<EOF | kubectl apply -f -
 apiVersion: rbac.authorization.k8s.io/v1
@@ -473,6 +479,7 @@ kubectl config use-context "$ADMIN_CONTEXT"
 ### Method 2: Service Accounts (for automation)
 
 ```bash
+kubectl create namespace rbac-demo
 kubectl create serviceaccount automation-user -n rbac-demo
 kubectl create token automation-user -n rbac-demo --duration=8760h
 

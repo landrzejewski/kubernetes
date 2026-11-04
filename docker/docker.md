@@ -1,104 +1,104 @@
-Uzyskanie pomocy na temat polecenia
+Get help for a command
 ```
 docker help ps
 ```
-Wyświetlenie listy dostępnych obrazów
+List available images
 ```
 docker images
 ```
-Pobranie obrazu do lokalne repozytorium (REGISTRYHOST:PORT/USERNAME/NAME:TAG)
+Pull an image into the local image store (REGISTRYHOST:PORT/USERNAME/NAME:TAG)
 ```
 docker pull landrzejewski/echo-server
 ```
-Uruchamianie kontenera
+Run a container
 ```
 docker run [--name] [--detach] busybox echo "Hello"
 ```
-Sprawdzenie działających kontenerów
+List running containers
 ```
 docker ps
 ```
-Wyświetlenie kontenerów, w tym zatrzymanych
+List all containers, including stopped ones
 ```
 docker ps -a
 ```
-Zatrzymanie kontenera
+Stop a container
 ```
-docker stop id/nazwa
+docker stop id/name
 ```
-Usunięcie zatrzymanego kontenera
+Remove a stopped container
 ```
-docker rm id/nazwa
+docker rm id/name
 ```
-Usunięcie wszystkich kontenerów
+Remove all containers
 ```
 docker rm $(docker ps -a -q)
 ```
-Uruchomienie kontenera z przekierowaniem portów
+Run a container with port forwarding
 ```
 docker run -p 8080:8080 landrzejewski/echo-server
 ```
-Wyświetlenie logów
+Show logs
 ```
-docker logs id/nazwa
+docker logs id/name
 ```
-Uruchomienie procesu w działającym kontenerze
+Run a process in a running container
 ```
-docker exec [-it] id/nazwa polecenie
+docker exec [-it] id/name command
 ```
-Restart kontenera
+Restart a container
 ```
-docker restart id/nazwa
+docker restart id/name
 ```
-Utworzenie kontenera bez jego wystartowania
+Create a container without starting it
 ```
-docker create [--cidfile nazwa-pliku] obraz 
+docker create [--cidfile file-name] image
 ```
-Uruchomienie stworzonego kontenera
+Start a created container
 ```
-docker start id/nazwa 
+docker start id/name 
 ```
-Wyświetlenie informacji o kontenerze
+Show container details
 ```
-docker inspect id/naza
+docker inspect id/name
 ```
-Eksportowanie obrazu do pliku tar
+Export an image to a tar file
 ```
-docker save -o naza-pliku.tar nazwa-obrazu:tag
+docker save -o file-name.tar image-name:tag
 ```
-Usuwanie obrazu z lokalnego repozytorium
+Remove an image from the local image store
 ```
-docker rmi id/nazwa
+docker rmi id/name
 ```
-Importowanie obrazu do lokalnego repozytorium
+Import an image into the local image store
 ```
-docker load -i nazwa-pliku.tar
+docker load -i file-name.tar
 ```
-Uruchomienie rejestru obrazów kontenerów
+Run a container image registry
 ```
 docker run -d -p 5000:5000 --restart always --name registry registry:2
 ```
-Dodanie tagu/aliasu do obrazu 
+Add a tag/alias to an image
 ```
-docker tag nazwa-obrazu nazwa-hosta-repozytrium:port/nazwa-obrazu
+docker tag image-name registry-host:port/image-name
 ```
-Dodanie obrazu do zewnętrznego repozytorium
+Push an image to a remote registry
 ```
-docker push nazwa-hosta-repozytrium:port/nazwa-obrazu
+docker push registry-host:port/image-name
 ```
-Pobranie obrazu z zewnętrznego repozytorium
+Pull an image from a remote registry
 ```
-docker pull nazwa-hosta-repozytrium:port/nazwa-obrazu
+docker pull registry-host:port/image-name
 ```
-Montowanie wolumenu (tyb bind)
+Mount a volume (bind type)
 ```
 docker run -p 8080:8080 --mount type=bind,src=/home/k8s/data,dst=/app/data,readonly=true landrzejewski/echo-server
 ```
-Montowanie wolumenu (tyb tmpfs)
+Mount a volume (tmpfs type)
 ```
 docker run -p 8080:8080 --mount type=tmpfs,dst=/app/data landrzejewski/echo-server
 ```
-Ustawianie zmiennych środowiskowych/konfiguracja kontenera z zewnątrz
+Set environment variables / configure a container from the outside
 ```
 docker run -p 5432:5432 \
     -e POSTGRES_DB=training \
@@ -108,7 +108,7 @@ docker run -p 5432:5432 \
     --mount type=bind,src=/home/k8s/data/db,dst=/var/lib/postgresql/data/pgdata \
     postgres
 ```
-Utworzenie globalnego wolumenu
+Create a named volume
 ```
 docker volume create --driver local --label training storage
 ```
@@ -124,7 +124,7 @@ docker run -p 5432:5432 \
     --volume storage:/var/lib/postgresql/data/pgdata \
     postgres
 ```
-Utworzenie sieci
+Create a network
 ```
 docker network create \
     --driver bridge \
@@ -145,22 +145,22 @@ docker network create \
 ```
 docker network connect training2 70e5472bffd4
 ```
-Tworzenie obrazu poprzez pracę z kontenerem i modyfikację istniejącego obrazu
+Create an image by working inside a container and modifying an existing image
 ```
 docker run -d landrzejewski/echo-server
 ```
 ```
 docker exec -it id/name sh
 ```
-Wprowadzamy zmiany np. instalujemy dodatkowe pakiety i dalej zapisujemy w formie nowego obrazu
+Make changes (e.g. install additional packages), then save the result as a new image
 ```
-docker container commit id/name nowa_nazwa_obrazu
+docker container commit id/name new_image_name
 ```
-Budowanie obrazu na podstawie pliku Dockerfile
+Build an image from a Dockerfile
 ```
 docker image build --tag landrzejewski/echo .
 ```
-Serwisy
+Services (Docker Swarm)
 ```
 docker swarm init
 ```
@@ -179,9 +179,9 @@ docker service scale echo-server=3
 ```
 docker service update --image landrzejewski/echo-server:v1 --update-order stop-first --update-parallelism 1 --update-delay 30s echo-server
 ```
-Serwisy deklaratywnie
+Services (declarative)
 ```
-docker compose up [nazwa-serwisu]
+docker compose up [service-name]
 ```
 ```
 docker compose down
@@ -195,7 +195,3 @@ docker stack rm my-stack
 ```
 docker build --platform linux/x86_64 --tag landrzejewski/platform .
 ```
-
-
-
-

@@ -472,7 +472,7 @@ kubectl rollout pause deployment pausable-app
 # Make multiple changes without triggering updates
 kubectl set image deployment/pausable-app nginx=nginx:1.21
 kubectl set resources deployment/pausable-app -c nginx --limits=memory=256Mi,cpu=500m
-kubectl scale deployment pausable-app --replicas=5
+kubectl scale deployment pausable-app --replicas=5  # scaling is not a rollout - it takes effect even while paused
 
 # Resume deployment to apply all changes at once
 kubectl rollout resume deployment pausable-app

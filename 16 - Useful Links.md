@@ -11,20 +11,19 @@
 - [Istio in Action](https://www.manning.com/books/istio-in-action) – Covers Istio service mesh fundamentals.
 
 ### Additional Popular Kubernetes Books
-- Kubernetes Up & Running – Kelsey Hightower, Brendan Burns & Joe Beda – Practical guide from Kubernetes pioneers.
-- Learning Kubernetes – Jonathan Baier & Jesse White – Beginner-friendly approach to core concepts and workflows.
+- Kubernetes Up & Running – Brendan Burns, Joe Beda, Kelsey Hightower & Lachlan Evenson – Practical guide from Kubernetes pioneers.
+- Getting Started with Kubernetes – Jonathan Baier & Jesse White – Beginner-friendly approach to core concepts and workflows.
 - Kubernetes Patterns – Bilgin Ibryam & Roland Huß – Design patterns and best practices for cloud-native apps.
-- Kubernetes Cookbook – Sébastien Goasguen – Recipes for solving common Kubernetes problems.
+- Kubernetes Cookbook – Sébastien Goasguen & Michael Hausenblas – Recipes for solving common Kubernetes problems.
 - Production Kubernetes – Josh Rosso, Rich Lander, Alex Brand, & John Harris – Operating Kubernetes clusters at scale.
-- Managing Kubernetes – Brendan Burns, Craig Tracey & Joe Beda – Insights on day-2 operations and advanced management.
-- Kubernetes Security – Liz Rice – Deep dive into securing Kubernetes clusters.
+- Managing Kubernetes – Brendan Burns & Craig Tracey – Insights on day-2 operations and advanced management.
+- Kubernetes Security – Liz Rice & Michael Hausenblas – Deep dive into securing Kubernetes clusters.
 - Cloud Native DevOps with Kubernetes – John Arundel & Justin Domingus – Implementing DevOps workflows with Kubernetes.
 
 ## Practice & Troubleshooting Tools
 
 - [killer.sh](https://killer.sh) – Interactive Kubernetes certification practice exams.
 - [k8s-issues.purutuladhar.com](https://k8s-issues.purutuladhar.com/) – Troubleshooting Kubernetes issues.
-- [Google Drive File](https://drive.google.com/file/d/1CoPMJE0ASe-9cuVfaQyu9I4AWRkHUVd0/view?usp=sharing) – VirtualBox image with a preconfigured Kubernetes cluster for hands-on practice.
 
 ---
 

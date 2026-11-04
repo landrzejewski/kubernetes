@@ -130,7 +130,7 @@ Init containers introduce a powerful initialization pattern to Pods. These speci
 
 The power of init containers becomes apparent when you consider common initialization patterns. Imagine you need to wait for a database to become available, download configuration from a remote source, or perform a schema migration before your application starts. Init containers handle these scenarios elegantly without adding complexity to your application code. They can use different images than your main containers, allowing you to use specialized tools for initialization without bloating your application image. Init containers share the same volumes as regular containers, making it easy to prepare data or configuration files that the main application will use.
 
-Sidecar containers, while technically regular containers from Kubernetes' perspective, represent a design pattern where auxiliary containers run alongside the main application container for the Pod's entire lifetime. These containers provide supporting services like log collection, monitoring, proxying, or data synchronization. The sidecar pattern has become so common that Kubernetes 1.29 introduced native support for sidecar containers through a special initialization mode, allowing them to start during Pod initialization and continue running alongside main containers.
+Sidecar containers, while technically regular containers from Kubernetes' perspective, represent a design pattern where auxiliary containers run alongside the main application container for the Pod's entire lifetime. These containers provide supporting services like log collection, monitoring, proxying, or data synchronization. The sidecar pattern has become so common that Kubernetes added native support for sidecar containers (alpha in 1.28, enabled by default since 1.29, stable since 1.33) through a special initialization mode (an init container with `restartPolicy: Always`), allowing them to start during Pod initialization and continue running alongside main containers.
 
 Ephemeral containers occupy a unique position in the container hierarchy, as they can be added to running Pods for debugging purposes. Unlike other container types that are defined in the Pod specification at creation time, ephemeral containers are added dynamically to running Pods when you need to troubleshoot issues. They're particularly valuable when debugging minimal containers that lack debugging tools or distroless containers that don't include a shell. Ephemeral containers share the Pod's namespaces, allowing them to observe and interact with other containers' processes and network connections.
 
@@ -359,7 +359,7 @@ kubectl replace --force -f current-pod.yaml
 # kubectl delete -f current-pod.yaml && kubectl create -f current-pod.yaml
 ```
 
-The `--force` flag with replace performs a forceful replacement by deleting and recreating the resource. This is necessary when updating immutable fields in Pods, such as container images or resource requests. However, this causes downtime as the Pod is deleted before being recreated.
+The `--force` flag with replace performs a forceful replacement by deleting and recreating the resource. This is necessary when updating immutable fields in Pods, such as environment variables, ports or volume mounts (container images are one of the few Pod fields that can be changed in place, and resources can be resized in place through the `resize` subresource). However, this causes downtime as the Pod is deleted before being recreated.
 
 Consider this comprehensive Pod configuration that demonstrates various features:
 
@@ -547,7 +547,7 @@ The `apiVersion` field specifies which version of the Kubernetes API to use when
 
 The `kind` field identifies the type of resource you're creating. For Pods, this is simply `Pod`. Kubernetes uses this field to determine how to interpret the rest of the specification. The combination of apiVersion and kind tells Kubernetes exactly which resource type and version you're working with.
 
-The `metadata` section contains information about the Pod rather than its functionality. The `name` field is required and must be unique within the namespace. Names must be valid DNS labels, meaning they can only contain lowercase letters, numbers, and hyphens. The `namespace` field specifies where to create the Pod, defaulting to "default" if not specified. Labels are key-value pairs used for organizing and selecting Pods. Unlike names, label values can be changed after creation and multiple Pods can share the same labels. Annotations provide a way to attach arbitrary metadata to Pods, often used by tools and libraries to store configuration or state.
+The `metadata` section contains information about the Pod rather than its functionality. The `name` field is required and must be unique within the namespace. Names must be valid DNS subdomain names, meaning they can only contain lowercase letters, numbers, hyphens and dots (sticking to DNS labels - no dots - is recommended, because the name is also used as the Pod's hostname). The `namespace` field specifies where to create the Pod, defaulting to "default" if not specified. Labels are key-value pairs used for organizing and selecting Pods. Unlike names, label values can be changed after creation and multiple Pods can share the same labels. Annotations provide a way to attach arbitrary metadata to Pods, often used by tools and libraries to store configuration or state.
 
 The `spec` section defines the desired state of the Pod, including its containers, volumes, and scheduling requirements. This is where you specify what containers to run, how they should be configured, and what resources they need. The spec is the heart of the Pod definition and can range from simple single-container configurations to complex multi-container setups with init containers, volumes, and detailed resource requirements.
 
@@ -648,7 +648,7 @@ The `--dry-run=client` flag tells kubectl to simulate resource creation without 
 ```bash
 # Generate YAML for a Pod with comprehensive configurations
 kubectl run web-app \
-  --image=node:18-alpine \
+  --image=node:24-alpine \
   --port=3000 \
   --labels=app=web,tier=frontend \
   --env=NODE_ENV=production \
@@ -880,7 +880,7 @@ kubectl get pvc
 
 Node selector and affinity constraints can also cause Pods to remain pending. If a Pod specifies node selectors or affinity rules that no nodes satisfy, it cannot be scheduled. This might happen if nodes lack required labels, all suitable nodes are cordoned, or affinity rules are too restrictive.
 
-Taints and tolerations present another common cause of pending Pods. Nodes might have taints that prevent Pods from being scheduled unless the Pods have matching tolerations. Master nodes typically have taints that prevent regular workload Pods from being scheduled on them.
+Taints and tolerations present another common cause of pending Pods. Nodes might have taints that prevent Pods from being scheduled unless the Pods have matching tolerations. Control plane nodes typically have taints (`node-role.kubernetes.io/control-plane:NoSchedule`) that prevent regular workload Pods from being scheduled on them.
 
 ### Diagnosing CrashLoopBackOff
 
@@ -953,17 +953,16 @@ Network issues can also cause image pull failures. Corporate firewalls might blo
 
 ### Using Ephemeral Containers
 
-Ephemeral containers, available in Kubernetes 1.18+, allow you to add debugging containers to running Pods without restarting them. This is invaluable when debugging production issues or investigating Pods with minimal container images that lack debugging tools.
+Ephemeral containers, stable since Kubernetes 1.25, allow you to add debugging containers to running Pods without restarting them. This is invaluable when debugging production issues or investigating Pods with minimal container images that lack debugging tools.
 
 ```bash
 # Add an ephemeral debugging container to a running Pod
 kubectl debug running-pod -it \
   --image=busybox:1.36 \
   --target=app-container \
-  --profile=general \
-  --share-processes
+  --profile=general
 
-# The debugging container shares the process namespace
+# With --target the debugging container shares the target container's process namespace
 # You can see and interact with processes from other containers
 ps aux
 netstat -tulpn
@@ -994,7 +993,7 @@ Deploy this debugging Pod to investigate network issues:
 
 ```bash
 # Test DNS resolution
-kubectl exec network-debug-pod -- nslookup kubernetes.default
+kubectl exec network-debug-pod -- nslookup kubernetes.default.svc.cluster.local  # busybox nslookup needs the FQDN for dotted names
 kubectl exec network-debug-pod -- nslookup google.com
 
 # Test connectivity to other Pods (replace with actual Pod IP)
@@ -1005,8 +1004,8 @@ kubectl exec network-debug-pod -- ip addr show
 kubectl exec network-debug-pod -- ip route show
 kubectl exec network-debug-pod -- netstat -rn
 
-# Use wget for HTTP testing (busybox includes wget)
-kubectl exec network-debug-pod -- wget -qO- http://kubernetes.default
+# Use wget for HTTP testing (busybox includes wget; replace with a real Service name)
+kubectl exec network-debug-pod -- wget -qO- http://my-service.default.svc.cluster.local
 ```
 
 ## Multi-Container Pod Architecture
@@ -1162,6 +1161,7 @@ spec:
           {
             echo "HTTP/1.1 200 OK"
             echo "Content-Type: text/plain"
+            echo "Connection: close"
             echo ""
             echo "# HELP app_requests_total Total requests"
             echo "# TYPE app_requests_total counter"
@@ -1172,7 +1172,7 @@ spec:
             echo "# HELP app_latency_ms Request latency"
             echo "# TYPE app_latency_ms gauge"
             cat /metrics/app.txt | grep latency_ms | sed 's/:/ /'
-          } | nc -l -p 9090 -q 1
+          } | nc -l -p 9090 -w 1
         fi
       done
     volumeMounts:
@@ -1579,8 +1579,8 @@ kubectl label pod echo-server-pod type=backend --overwrite
 kubectl label pod echo-server-pod type-
 
 # Add label to a node for Pod scheduling
-kubectl label node node1.k8s type=primary
-kubectl label node node2.k8s type=secondary
+kubectl label node node1 type=primary
+kubectl label node node2 type=secondary
 ```
 
 ### Labels for Node Selection
@@ -1793,7 +1793,7 @@ kubectl logs echo-server-pod --since=2023-10-15T10:00:00Z
 kubectl logs echo-server-pod --previous
 
 # Combine multiple options
-kubectl logs echo-server-pod -c app --tail=100 -f --timestamps
+kubectl logs echo-server-pod -c echo-server --tail=100 -f --timestamps
 ```
 
 ## Port Forwarding - Accessing Pod Services Locally
@@ -1955,7 +1955,7 @@ A common pattern for testing and debugging is running temporary Pods that are au
 kubectl run -it --rm test-pod --image=busybox:1.36 -- /bin/sh
 
 # Run temporary Pod with specific command
-kubectl run -it --rm curl-test --image=alpine:3.18 -- sh -c "apk add curl && curl http://kubernetes.default"
+kubectl run -it --rm curl-test --image=alpine:3.18 -- sh -c "apk add curl && curl -k https://kubernetes.default/version"
 
 # Run temporary Pod with custom configuration for network debugging
 kubectl run -it --rm debug-pod \

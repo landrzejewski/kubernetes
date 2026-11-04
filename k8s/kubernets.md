@@ -1,37 +1,37 @@
- ## Podstawy administracji
-Wyświetlenie informacji dotyczących elementu konfiguracyjnego
+## Basic administration
+Display documentation for a configuration field
 ```
 kubectl explain pod.spec
 ```
-Zastosowanie konfiguracji
+Apply a configuration
 ```
 kubectl create -f echo-server-pod.yaml
 ```
-Pobranie konfiguracji w formacie json/yaml
+Get the configuration in JSON/YAML format
 ```
 kubectl get po echo-server-pod -o yaml
 ```
 ```
-kubectl describe echo-server-pod
+kubectl describe pod echo-server-pod
 ```
-Wyświetlenie logów
+Display logs
 ```
 kubectl logs echo-server-pod [-c $CONTAINER_NAME]
 ```
-Forward portów
+Port forwarding
 ```
 kubectl port-forward echo-server-pod 8888:8080 
 ```
-Wykonanie polecenia na kontenerze / pod
+Execute a command in a container / pod
 ```
 kubectl exec echo-server-pod -- env
 ```
 ## Labels
-Pokazanie etykiet
+Show labels
 ```
 kubectl get pods --show-labels
 ```
-Filtrowanie po etykietach
+Filter by labels
 ```
 kubectl get pods -l version
 ```
@@ -53,52 +53,52 @@ kubectl get pods -l 'env notin (production,development)'
 ```
 kubectl get pods -l 'env=production,version=2'
 ```
-Dodanie etykiety
+Add a label
 ```
-kubectl label pod echo-server-pod type=forntend
+kubectl label pod echo-server-pod type=frontend
 ```
 ```
 kubectl label node node1.k8s type=primary
 ```
-Zmiana etykiety
+Change a label
 ```
 kubectl label pod echo-server-pod type=backend --overwrite
 ```
-Usunięcie etykiety
+Remove a label
 ```
 kubectl label pod echo-server-pod type-
 ```
 ## Annotations
-Dodanie adnotacji
+Add an annotation
 ```
 kubectl annotate pod echo-server-pod training=true
 ```
-Wyświetlenie adnotacji
+Display annotations
 ```
 kubectl get pod echo-server-pod -o yaml
 ```
 ## Namespaces
-Pobranie przestrzeni nazw
+List namespaces
 ```
 kubectl get namespaces
 ```
-Pobranie podów z danej przestrzeni nazw
+List pods in a given namespace
 ```
 kubectl get pods --namespace=kube-system
 ```
-Utworzenie przestrzeni nazw
+Create a namespace
 ```
 kubectl create namespace training
 ```
-Usunięcie przestrzeni nazw
+Delete a namespace
 ```
 kubectl delete namespace training
 ```
-Ustawienie kontekstu/przestrzeni
+Set the namespace for the current context
 ```
 kubectl config set-context --current --namespace=training
 ```
-Usuwanie zasobów
+Delete resources
 ```
 kubectl delete pod echo-server-pod
 ```
@@ -133,15 +133,13 @@ kubectl set image deployment echo-server-deployment echo-server-app=landrzejewsk
 ```
 kubectl rollout undo deployment echo-server-deployment --to-revision=1
 ```
-Polisy sieciowe [https://github.com/ahmetb/kubernetes-network-policy-recipes](https://github.com/ahmetb/kubernetes-network-policy-recipes)
-
-Uruchomienie testowego poda w klastrze
+Run a test pod in the cluster
 ```
 kubectl run -it --rm test --image=busybox /bin/sh
 ```
-Instalacja metallb [https://metallb.universe.tf/installation](https://metallb.universe.tf/installation)
+Installing MetalLB [https://metallb.universe.tf/installation](https://metallb.universe.tf/installation)
 ```
-kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.15.3/config/manifests/metallb-native.yaml
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.16.1/config/manifests/metallb-native.yaml
 ```
 ```
 apiVersion: metallb.io/v1beta1
@@ -159,26 +157,30 @@ metadata:
   name: example
   namespace: metallb-system
 ```
-Instalacja Ingress [https://kubernetes.github.io/ingress-nginx/deploy/#bare-metal-clusters](https://kubernetes.github.io/ingress-nginx/deploy/#bare-metal-clusters)
+Installing Ingress (ingress-nginx) [https://kubernetes.github.io/ingress-nginx/deploy/#bare-metal-clusters](https://kubernetes.github.io/ingress-nginx/deploy/#bare-metal-clusters)
+
+Note: the ingress-nginx project was retired (maintenance ended in March 2026) - prefer the Gateway API below for new setups.
 ```
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.14.1/deploy/static/provider/baremetal/deploy.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.15.1/deploy/static/provider/baremetal/deploy.yaml
 kubectl get pods -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx --watch
 ```
-Instalacja Gateway
+Installing Gateway API (NGINX Gateway Fabric)
 ```
-kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.1/standard-install.yaml
+kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.7.0/standard-install.yaml
 helm install ngf oci://ghcr.io/nginx/charts/nginx-gateway-fabric --create-namespace -n nginx-gateway
 kubectl get pods,svc -n nginx-gateway
 kubectl get gc
 ```
-Instalacja UI  [https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard](https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard)
+Installing the UI (Kubernetes Dashboard) [https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard](https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard)
+
+Note: Kubernetes Dashboard was archived in January 2026 (no more fixes or releases; the recommended successor is Headlamp). Its Helm repository moved to kubernetes-retired.github.io.
 ```
-helm repo add kubernetes-dashboard https://kubernetes.github.io/dashboard/
+helm repo add kubernetes-dashboard https://kubernetes-retired.github.io/dashboard/
 
 helm upgrade --install kubernetes-dashboard kubernetes-dashboard/kubernetes-dashboard --create-namespace --namespace kubernetes-dashboard
 ```
 
-### Alternatywnie (repo cache)
+### Alternatively (using the registry cache)
 ```
 helm upgrade --install kubernetes-dashboard kubernetes-dashboard/kubernetes-dashboard \
   --create-namespace \
@@ -196,12 +198,4 @@ kubectl apply -f admin-roles.yml
 kubectl -n kubernetes-dashboard create token admin-user
 
 kubectl -n kubernetes-dashboard port-forward svc/kubernetes-dashboard-kong-proxy 8001:443 --address 0.0.0.0
-```
-Instalacja Helm [https://helm.sh/docs/intro/install](https://helm.sh/docs/intro/install)
-```
-curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
-sudo apt-get install apt-transport-https --yes
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
-sudo apt-get update
-sudo apt-get install helm
 ```

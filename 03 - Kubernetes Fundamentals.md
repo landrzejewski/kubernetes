@@ -55,8 +55,8 @@ The controller manager runs multiple control loops that continuously monitor clu
 The controller manager bundles many controllers:
 
 - **Node Controller**: Monitors node health, marking nodes as unavailable when they stop responding and evicting Pods from unreachable nodes after a timeout.
-- **Replication Controller**: Ensures the correct number of Pod replicas exist, creating new Pods when there are too few and deleting excess Pods when there are too many.
-- **Endpoints Controller**: Populates the Endpoints object that links Services to Pods, updating these connections as Pods come and go.
+- **ReplicaSet Controller**: Ensures the correct number of Pod replicas exist, creating new Pods when there are too few and deleting excess Pods when there are too many.
+- **EndpointSlice Controller**: Populates the EndpointSlice objects that link Services to Pods, updating these connections as Pods come and go.
 - **Service Account Controller**: Creates default service accounts for new namespaces, enabling Pods to authenticate with the API server.
 
 Each controller follows the same pattern: watch for changes, compare desired state with actual state, take action to reconcile differences. This continuous reconciliation loop is the heart of Kubernetes' self-healing capabilities.
@@ -96,8 +96,10 @@ Understanding kube-proxy requires understanding the problem it solves. Pods are 
 kube-proxy operates in different modes:
 
 - **iptables mode** (default): Programs Linux iptables rules to redirect Service traffic directly to Pod IPs. Efficient but becomes complex with many Services.
-- **IPVS mode**: Uses Linux IPVS for load balancing, providing better performance with thousands of Services and more load balancing algorithms.
-- **userspace mode** (legacy): Proxies traffic through a userspace process. Slower but works everywhere.
+- **nftables mode** (stable since v1.33): The successor of iptables mode, using the kernel's nftables API; it scales better and is the recommended mode for new Linux clusters.
+- **IPVS mode** (deprecated since v1.35): Uses Linux IPVS for load balancing with more load balancing algorithms; new clusters should use nftables instead.
+
+The old userspace mode was removed in v1.26.
 
 When you access a Service, kube-proxy's rules intercept the traffic and redirect it to one of the Service's backend Pods, implementing load balancing at the kernel level for maximum performance.
 
@@ -110,14 +112,15 @@ Add-ons are pods and services that implement cluster features beyond core Kubern
 The DNS add-on (typically CoreDNS) provides crucial name resolution within the cluster. Without DNS, Pods would need to discover each other using IP addresses, which change frequently. DNS enables service discovery through predictable names.
 
 When you create a Service named "database" in the "production" namespace, DNS automatically creates records:
-- `database.production` - accessible from within the same namespace
+- `database` - short name, accessible from within the same namespace
+- `database.production` - accessible from any namespace
 - `database.production.svc.cluster.local` - fully qualified domain name accessible from anywhere in the cluster
 
 Pods can simply reference services by name, and DNS resolves them to the current cluster IP. This abstraction means your application code doesn't need to know about IP addresses or even which namespace it's running in-it just needs to know service names.
 
 #### Dashboard: Visual Cluster Management
 
-The Kubernetes Dashboard provides a web-based UI for cluster management. While kubectl offers complete control, the Dashboard makes common tasks more intuitive, especially for users less comfortable with command-line interfaces.
+The Kubernetes Dashboard provides a web-based UI for cluster management. Note that the original Kubernetes Dashboard project has been archived and is no longer maintained; its maintainers recommend [Headlamp](https://github.com/kubernetes-sigs/headlamp) (a SIG UI project) as the replacement. While kubectl offers complete control, the Dashboard makes common tasks more intuitive, especially for users less comfortable with command-line interfaces.
 
 Through the Dashboard, you can:
 - Deploy containerized applications using forms or YAML
@@ -136,7 +139,7 @@ These metrics answer critical questions: Which Pods consume the most resources? 
 
 #### Ingress Controllers
 
-Ingress controllers implement the Ingress resource, providing HTTP/HTTPS routing to services. Popular options include NGINX, Traefik, and HAProxy. The controller watches for Ingress resources and configures itself accordingly, automatically updating routing rules as you deploy new applications.
+Ingress controllers implement the Ingress resource, providing HTTP/HTTPS routing to services. Popular options include NGINX, Traefik, and HAProxy. The controller watches for Ingress resources and configures itself accordingly, automatically updating routing rules as you deploy new applications. Note that the community ingress-nginx controller (kubernetes/ingress-nginx) has been retired - best-effort maintenance ended in March 2026 - and the Gateway API is the recommended successor for new deployments.
 
 ## Kubernetes Objects: The Building Blocks
 
@@ -144,7 +147,7 @@ Ingress controllers implement the Ingress resource, providing HTTP/HTTPS routing
 
 Kubernetes objects are persistent entities that represent your cluster's state. When you create an object, you're telling Kubernetes "this is what I want to exist in my cluster." Kubernetes then works continuously to ensure that object exists and maintains its specified characteristics.
 
-Objects aren't just data structures-they're living entities with controllers watching them. Create a Deployment object requesting 3 replicas, and the Deployment controller ensures 3 Pods always run. Create a Service object, and the Endpoints controller maintains the connection between the Service and its Pods. This object-controller pattern permeates Kubernetes.
+Objects aren't just data structures-they're living entities with controllers watching them. Create a Deployment object requesting 3 replicas, and the Deployment controller ensures 3 Pods always run. Create a Service object, and the EndpointSlice controller maintains the connection between the Service and its Pods. This object-controller pattern permeates Kubernetes.
 
 Every object follows the same fundamental pattern:
 
@@ -168,7 +171,7 @@ Different object types have different spec structures:
 - Pod specs define containers, volumes, and scheduling constraints
 - Service specs define ports, selectors, and service types  
 - Deployment specs define replica counts, update strategies, and Pod templates
-- ConfigMap specs contain configuration data
+- ConfigMaps have no spec at all - their configuration lives in the `data` field
 
 The spec is immutable for some fields (you can't change a Pod's nodeName once scheduled) but mutable for others (you can update a Deployment's replica count anytime). These mutability rules prevent impossible state transitions while enabling dynamic management.
 
@@ -336,7 +339,7 @@ spec:
         # Liveness probe - container is restarted if this fails
         livenessProbe:
           httpGet:
-            path: /healthz
+            path: /    # nginx has no /healthz endpoint
             port: 80
           initialDelaySeconds: 30
           periodSeconds: 10
@@ -344,7 +347,7 @@ spec:
         # Readiness probe - pod isn't sent traffic until this succeeds
         readinessProbe:
           httpGet:
-            path: /ready
+            path: /
             port: 80
           initialDelaySeconds: 5
           periodSeconds: 5
@@ -602,7 +605,7 @@ spec:
 Kubernetes provides several Secret types for specific use cases:
 - `Opaque`: Arbitrary user-defined data (default)
 - `kubernetes.io/service-account-token`: Service account tokens
-- `kubernetes.io/dockercfg`: Docker registry credentials
+- `kubernetes.io/dockerconfigjson`: Docker registry credentials (`kubernetes.io/dockercfg` is the legacy format)
 - `kubernetes.io/tls`: TLS certificates and keys
 
 ### Persistent Volumes: Durable Storage
@@ -653,7 +656,10 @@ metadata:
 spec:
   containers:
   - name: postgres
-    image: postgres:13
+    image: postgres:17
+    env:
+    - name: POSTGRES_PASSWORD   # required by the postgres image
+      value: "changeme"
     volumeMounts:
     - name: data-volume
       mountPath: /var/lib/postgresql/data
@@ -671,7 +677,7 @@ apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   name: fast-ssd
-provisioner: kubernetes.io/aws-ebs  # Cloud-specific provisioner
+provisioner: ebs.csi.aws.com  # Cloud-specific CSI provisioner (AWS EBS CSI driver)
 parameters:
   type: gp3
   iopsPerGB: "100"
@@ -993,7 +999,7 @@ spec:
 ```
 
 Problems with direct Pods:
-- No automatic restart if the Pod fails
+- No replacement if the Pod is deleted or its node fails
 - No easy scaling
 - No rolling updates
 - No self-healing
@@ -1073,7 +1079,7 @@ spec:
     spec:
       containers:
       - name: postgres
-        image: postgres:13
+        image: postgres:17
         ports:
         - containerPort: 5432
         env:
@@ -1098,7 +1104,7 @@ spec:
 ```
 
 StatefulSets provide:
-- Stable, unique network identifiers (postgres-0, postgres-1, postgres-2)
+- Stable, unique network identifiers (postgres-cluster-0, postgres-cluster-1, postgres-cluster-2)
 - Stable, persistent storage
 - Ordered, graceful deployment and scaling
 - Ordered, automated rolling updates
@@ -1126,18 +1132,13 @@ spec:
       - name: fluentd
         image: fluentd:latest
         volumeMounts:
-        - name: varlog
+        - name: varlog          # container logs live in /var/log/pods and /var/log/containers
           mountPath: /var/log
-        - name: dockercontainers
-          mountPath: /var/lib/docker/containers
           readOnly: true
       volumes:
       - name: varlog
         hostPath:
           path: /var/log
-      - name: dockercontainers
-        hostPath:
-          path: /var/lib/docker/containers
 ```
 
 DaemonSets are perfect for:
@@ -1257,7 +1258,7 @@ kubectl apply -f https://example.com/manifest.yaml  # From URL
 # Update resources
 kubectl set image deployment/web nginx=nginx:1.21
 kubectl scale deployment web --replicas=5
-kubectl autoscale deployment web --min=2 --max=10 --cpu-percent=80
+kubectl autoscale deployment web --min=2 --max=10 --cpu=80%
 
 # Delete resources
 kubectl delete pod web-xyz
@@ -1281,10 +1282,7 @@ kubectl get pods -o yaml  # Full YAML output
 kubectl get pods -o json  # JSON output
 
 # Custom columns
-kubectl get pods -o custom-columns=\
-  NAME:.metadata.name,\
-  STATUS:.status.phase,\
-  NODE:.spec.nodeName
+kubectl get pods -o custom-columns=NAME:.metadata.name,STATUS:.status.phase,NODE:.spec.nodeName
 
 # Filtering with labels
 kubectl get pods -l app=web
@@ -1355,12 +1353,12 @@ kubectl top pods
 kubectl top pods -A
 kubectl top nodes
 
-# Debugging with ephemeral containers (K8s 1.23+)
+# Debugging with ephemeral containers (stable since K8s 1.25)
 kubectl debug pod-name -it --image=busybox
 
 # Network debugging
 kubectl run tmp-shell --rm -i --tty --image nicolaka/netshoot
-kubectl exec -it tmp-shell -- nslookup kubernetes
+# inside the shell: nslookup kubernetes
 
 # Check rollout status
 kubectl rollout status deployment/web
@@ -1418,7 +1416,7 @@ kubectl get pods -o json | jq '.items[].metadata.name'
 kubectl get pods -o yaml | yq '.items[0].spec.containers[0].image'
 
 # Export resources (remove cluster-specific fields)
-kubectl get deployment web -o yaml --export > deployment.yaml  # Deprecated
+# kubectl get deployment web -o yaml --export  # --export was removed in v1.18
 kubectl get deployment web -o yaml | kubectl neat  # Using kubectl-neat plugin
 ```
 
