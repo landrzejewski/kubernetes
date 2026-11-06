@@ -54,3 +54,33 @@
 - [KubeDiagrams](https://arxiv.org/abs/2505.22879) – Tool to convert manifests into architecture diagrams.
 - [XI Commandments of Kubernetes Security](https://arxiv.org/abs/2006.15275) – Best practices for Kubernetes security.
 - [Interactive Network Policy Editor](https://editor.networkpolicy.io/?id=YEpqGqaXrbFg1r7R) – Visual editor for Kubernetes network policies.
+
+## 7. Package Management (module 13)
+- [Helm Documentation](https://helm.sh/docs/) – Charts, templates, values, OCI registries and the `helm` CLI.
+- [Chart Template Guide](https://helm.sh/docs/chart_template_guide/) – Go templates, built-in objects and helper functions.
+- [Artifact Hub](https://artifacthub.io/) – Search engine for Helm charts and other cloud-native packages.
+- [Kustomize Reference](https://kubectl.docs.kubernetes.io/references/kustomize/) – All `kustomization.yaml` fields (patches, replacements, components, generators).
+
+## 8. Cluster Administration and Monitoring (module 14)
+- [Upgrading kubeadm clusters](https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-upgrade/) – Official upgrade procedure.
+- [Operating etcd clusters](https://kubernetes.io/docs/tasks/administer-cluster/configure-upgrade-etcd/) – Backup, restore and security of etcd.
+- [Certificate management with kubeadm](https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-certs/) – Expiration checks and renewal.
+- [Encrypting Secret Data at Rest](https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/) – EncryptionConfiguration and key rotation.
+- [kube-prometheus-stack chart](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) – Prometheus Operator, Prometheus, Alertmanager and Grafana.
+- [PromQL basics](https://prometheus.io/docs/prometheus/latest/querying/basics/) – The Prometheus query language.
+- [Grafana Loki](https://grafana.com/docs/loki/latest/) and [LogQL](https://grafana.com/docs/loki/latest/query/) – Log storage and queries.
+- [Grafana Alloy](https://grafana.com/docs/alloy/latest/) – Telemetry collector (successor of Promtail and Grafana Agent).
+
+## 9. API Extensions (module 15)
+- [Custom Resources](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/) and [CRD validation rules (CEL)](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#validation-rules).
+- [Validating Admission Policy](https://kubernetes.io/docs/reference/access-authn-authz/validating-admission-policy/) and [Mutating Admission Policy](https://kubernetes.io/docs/reference/access-authn-authz/mutating-admission-policy/).
+- [Kubebuilder Book](https://book.kubebuilder.io/) – Writing controllers and operators in Go.
+- [Operator SDK](https://sdk.operatorframework.io/) – Framework for building operators (Go, Ansible, Helm).
+
+## 10. GitOps (module 16)
+- [OpenGitOps principles](https://opengitops.dev/) – The four GitOps principles.
+- [Argo CD Documentation](https://argo-cd.readthedocs.io/en/stable/) – Applications, sync options, waves/hooks, ApplicationSets, RBAC.
+- [Argo CD Image Updater](https://argocd-image-updater.readthedocs.io/) – Automatic image tag updates written back to Git.
+- [Sealed Secrets](https://github.com/bitnami/sealed-secrets) – Encrypted Secrets that are safe to store in Git.
+- [External Secrets Operator](https://external-secrets.io/) – Sync secrets from Vault and cloud secret managers.
+- [Gitea Documentation](https://docs.gitea.com/) – The self-hosted Git server used in the labs.
